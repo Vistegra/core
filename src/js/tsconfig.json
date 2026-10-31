@@ -26,8 +26,7 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "sourceMap": true,
-    "watch": true
+    "sourceMap": true
   },
   "files": [
     "./main.ts",
