@@ -1,6 +1,9 @@
 Ядро CMS:\
-git submodule add https://github.com/Trydim/core\
+git submodule add https://github.com/Vistegra/core.git\
 git submodule update --remote
+
+Быстрая установка зависимостей и сборка ассетов (из корня проекта):\
+`powershell -ExecutionPolicy Bypass -File ./core/setup.ps1`
 
 константы: \
  OUTSIDE = false - по умолчанию \
