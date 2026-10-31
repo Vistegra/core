@@ -2,6 +2,7 @@
 
 use Helpers\ServerBag;
 use Helpers\HeaderBag;
+use Helpers\ParameterBag;
 
 class UrlGenerator {
   /**
@@ -11,11 +12,15 @@ class UrlGenerator {
   /**
    * @var ServerBag
    */
-  private $server;
+  public $server;
   /**
    * @var HeaderBag
    */
-  private $headers;
+  public $headers;
+  /**
+   * @var ParameterBag
+   */
+  public $request;
   /**
    * @var string
    */
@@ -83,6 +88,7 @@ class UrlGenerator {
     $this->main = $main;
     $this->server = new ServerBag($_SERVER);
     $this->headers = new HeaderBag($this->server->getHeaders());
+    $this->request = new ParameterBag($_REQUEST);
 
     $this->absolutePath = str_replace('\\', '/', ABS_SITE_PATH);
     $this->corePath = str_replace('\\', '/', $corePath);
