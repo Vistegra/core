@@ -20,7 +20,7 @@
     "localCypressTest": "cypress open --project ../../ --config-file ./core/src/test/cypress.json"
   },
   "dependencies": {
-    "@tinymce/tinymce-vue": "next",
+    "@tinymce/tinymce-vue": "^5.0.0",
     "@tiptap/extension-color": "^2.0.0-beta.12",
     "@tiptap/extension-highlight": "^2.0.0-beta.35",
     "@tiptap/extension-link": "^2.0.0-beta.43",
@@ -30,8 +30,8 @@
     "@tiptap/vue-3": "^2.0.0-beta.96",
     "mustache": "latest",
     "normalize-scss": "latest",
-    "primevue": "^3.10.0",
-    "vue": "next"
+    "primevue": "3.12.6",
+    "vue": "^3.2.47"
   },
   "devDependencies": {
     "@vue/compiler-sfc": "latest",
@@ -44,8 +44,9 @@
     "sass-loader": "latest",
     "style-loader": "latest",
     "svgo-loader": "latest",
-    "typescript": "latest",
-    "vue-loader": "next",
+    "ts-loader": "^9.4.0",
+    "typescript": "~5.4.5",
+    "vue-loader": "^17.0.0",
     "webpack": "latest",
     "webpack-cli": "latest"
   }

@@ -30,11 +30,11 @@
     "svgo-loader": "latest",
     "terser-webpack-plugin": "latest",
     "update": "latest",
-    "vue": "next",
+    "vue": "^3.2.47",
     "vue-loader": "^17.0.0",
     "vue-template-compiler": "latest",
     "vue3-konva": "latest",
-    "vuex": "next",
+    "vuex": "^4.1.0",
     "webpack": "latest",
     "webpack-cli": "latest"
   }
