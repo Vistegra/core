@@ -100,7 +100,7 @@ const orders = {
   },
 }
 
-const customers = {
+export const customers = {
   form: new FormData(),
 
   needReload: false,
@@ -128,7 +128,7 @@ const customers = {
   usersList: new Map(),
 
   init() {
-    this.M = new f.initModal();
+    this.M = f.initModal();
     this.p = new f.Pagination( '#paginator',{
       dbAction : 'loadCustomers',
       query    : this.query.bind(this),
@@ -144,7 +144,6 @@ const customers = {
 
     this.query();
     this.onEvent();
-    return this;
   },
 
   setUsers(data) {
@@ -163,7 +162,9 @@ const customers = {
           value = JSON.parse(item['contacts']);
           item['contactsParse'] = value;
           if (Object.values(value).length) {
-            let arr = Object.entries(value).map(n => ({key: _(n[0]), value: n[1]}));
+            let arr = Object.entries(value).map(n => {
+              return {key: _(n[0]), value: n[1]}
+            });
             value = f.replaceTemplate(this.contValue, arr);
           } else value = '';
         } catch (e) {
@@ -233,7 +234,7 @@ const customers = {
   // кнопки открыть закрыть и т.д.
   actionBtn(e) {
     let target = e.target, form,
-        action = target.dataset.action;
+        action = target.getAttribute('data-action');
 
     if (!action) return;
 
@@ -253,11 +254,9 @@ const customers = {
 
         ['name', 'phone', 'email', 'address', 'ITN'].map(i => {
           let node = form.querySelector(`[name="${i}"]`);
-          i === 'phone' && f.initMask(node);
-          i === 'ITN' && f.initMask(node, '_________');
+          i === 'phone' && f.maskInit(node, '+375 (__) ___ __ __');
+          i === 'ITN' && f.maskInit(node, '_________');
         });
-
-        form.querySelector('#cTypeI').checked = true;
 
         this.confirmMsg = 'Клиент добавлен';
         this.M.btnConfig('confirmYes', {value: 'Подтвердить'});
@@ -265,7 +264,7 @@ const customers = {
         f.relatedOption(form);
       },
       'changeCustomer': () => {
-        if (this.selected.getSelectedSize() !== 1) { f.showMsg('Выберите одного клиента!'); return; }
+        if (this.selected.getSelectedSize() !== 1) { f.showMsg('Выберите клиента!'); return; }
 
         let node,
             id = this.selected.getSelected(),
@@ -281,7 +280,7 @@ const customers = {
         let {phone = '', email = '', address = ''} = customer['contactsParse'];
 
         node = form.querySelector(`[name="phone"]`);
-        f.initMask(node);
+        f.maskInit(node, '+375 (__) ___ __ __');
         node.value = phone;
 
         node = form.querySelector(`[name="email"]`);
@@ -290,11 +289,8 @@ const customers = {
         node = form.querySelector(`[name="address"]`);
         node.value = address;
 
-        node = form.querySelector(customer['ITN'] ? '#cTypeB' : '#cTypeI');
-        node.checked = true;
-
         node = form.querySelector(`[name="ITN"]`);
-        f.initMask(node, '_________');
+        f.maskInit(node, '_________');
         node.value = customer['ITN'];
 
         this.confirmMsg = 'Изменения сохранены';
@@ -373,5 +369,3 @@ const customers = {
     this.onEventNode(f.gI('search'), this.focusSearch, {once: true}, 'focus');
   },
 }
-
-window.CustomersInstance = customers.init();

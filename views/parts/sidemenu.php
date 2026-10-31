@@ -1,185 +1,149 @@
 <?php if (!defined('MAIN_ACCESS')) die('access denied!');
-
-/**
- * @var Main $main - global
- */
+global $main;
 
 $adminMenu = '';
 $dbTables = $main->getBaseTable();
-$siteLink = $main->url->getUri();
 
-if (is_array($dbTables)) {
+if(is_array($dbTables)) {
 
-  class CreateMenu {
-    private $siteLink;
-
-    public function __construct($siteLink) {
-      $this->siteLink = $siteLink;
-    }
-
-    public function subSideMenuItem($fileName, $name, $active): string {
-      $sitePath = $this->siteLink . "admindb?tableName=" . $fileName;
-      return <<<item
-      <li>
-        <a class="nav-item pl-5 $active" href="$sitePath">
-          <i class="pi pi-file-excel"></i>
-          <span class="nav-text">$name</span>
-        </a>
+  function subSideMenuItem($fileName, $name, $active) {
+    $sitePath = SITE_PATH . "admindb?tableName=" . $fileName;
+    return <<<item
+      <li class="nav-item $active">
+        <a class="nav-link pl-5" href="$sitePath">$name</a>
       </li>
 item;
-    }
-
-    public function subSideMenu($title, $items, $root): string {
-      $icon = $root ? 'pi-book' : 'pi-folder';
-      $rootClass = $root ? 'overflow-scroll' : 'overflow-hidden';
-      $idWrap = $root ? 'id="DBTablesWrap"' : '';
-      return <<<menu
-      <span class="nav-item has-arrow" role="button" aria-expanded="false">
-        <i class="pi $icon"></i>
-        <span class="nav-text">$title</span>
-      </span>
-      <ul aria-expanded="false" class="ms-3 $rootClass" $idWrap data-role="link" style="height: 0">$items</ul>
-menu;
-    }
-
-    public function create($title, $tables, $link = '', $root = true): string {
-      $items = '';
-      foreach ($tables as $key => $item) {
-        if (!is_numeric($key)) {
-          $items .= '<li>' . $this->create($key, $item, $link . '/' . $key, false) . '</li>';
-          continue;
-        }
-
-        global $tableActive;
-        $linkTarget = $item['fileName'] ?? $item['dbTable'] ?? $item['name'];
-        $active = $tableActive === $link . '/' . $linkTarget ? 'active' : '';
-        $items .= $this->subSideMenuItem($link . '/' . $linkTarget, $item['name'], $active);
-      }
-      return $this->subSideMenu(gTxt($title), $items, $root);
-    }
   }
 
-  $adminMenu = (new CreateMenu($siteLink))->create('Администрирование', $dbTables);
-} ?>
-<aside id="sideLeft" class="sidebar"> <!-- data-background-color="white"-->
-  <div class="position-sticky top-0">
-    <ul class="sidebar-menu show" id="sideMenu">
-      <li class="nav-label"><?= gTxt('Main Menu') ?></li>
-      <?php if ($main->availablePage(PUBLIC_PAGE)) { ?>
-        <li>
-          <a class="nav-item" href="<?= $siteLink ?>" aria-expanded="false">
-            <i class="pi pi-globe"></i>
-            <span class="nav-text"><?= gTxt(PUBLIC_PAGE) ?></span>
-          </a>
-        </li>
-      <?php }
+  function subSideMenu($title, $item, $root) {
+    $icon = $root ? 'fa-database' : 'fa-arrow-right';
+    $idWrap = $root ? 'id="DBTablesWrap"' : '';
+    return <<<menu
+      <a class="nav-link" href="#admindb">
+        <i class="fa $icon"></i>
+        <p>$title <b class="caret"></b></p>
+      </a>
+      <div class="d-none" $idWrap data-role="link">
+        <ul class="nav">$item</ul>
+      </div>
+menu;
+  }
 
-      foreach ($main->getSideMenu() as $item) {
-        if (in_array($item, [PUBLIC_PAGE, 'setting'])) continue;
+  function createMenu($title, $tables, $link = '', $root = true) {
+    $items = '';
+    foreach ($tables as $key => $item) {
+      if (!is_numeric($key)) {
+        $items .= '<li class="nav-item">' . createMenu($key, $item, $link . '/' . $key, false) . '</li>';
+        continue;
+      }
 
-        if (is_array($item) && isset($item['label'])) { ?>
-          <li class="nav-label"><?= gTxt($item['label']) ?></li>
-        <?php continue; }
+      global $tableActive;
+      $linkTarget = $item['fileName'] ?? $item['dbTable'] ?? $item['name'];
+      $active = $tableActive === $link . '/' . $linkTarget ? 'active' : '';
+      $items .= subSideMenuItem($link . '/' . $linkTarget, $item['name'], $active);
+    }
+    return subSideMenu(gTxt($title), $items, $root);
+  }
 
-        switch ($item) {
-          case 'orders': ?>
-            <li>
-              <a class="nav-item" href="<?= $siteLink ?>orders">
-                <i class="pi pi-inbox"></i>
-                <span class="nav-text"><?= gTxt('orders') ?></span>
-              </a>
-            </li>
-          <?php break;
-          case 'calendar': ?>
-            <li>
-              <a class="nav-item" href="<?= $siteLink ?>calendar">
-                <i class="pi pi-table"></i>
-                <span class="nav-text"><?= gTxt('calendar') ?></span>
-              </a>
-            </li>
-          <?php break;
-          case 'customers': ?>
-            <li>
-              <a class="nav-item" href="<?= $siteLink ?>customers">
-                <i class="pi pi-dollar"></i>
-                <span class="nav-text"><?= gTxt('customers') ?></span>
-              </a>
-            </li>
-          <?php break;
-          case 'users': ?>
-            <li>
-              <a class="nav-item" href="<?= $siteLink ?>users">
-                <i class="pi pi-users"></i>
-                <span class="nav-text"><?= gTxt('users') ?></span>
-              </a>
-            </li>
-          <?php break;
-          case 'statistic': ?>
-            <li>
-              <a class="nav-item" href="<?= $siteLink ?>statistic">
-                <i class="pi pi-chart-line"></i>
-                <span class="nav-text"><?= gTxt('statistic') ?></span>
-              </a>
-            </li>
-          <?php break;
-          case 'admindb': ?>
-            <li>
-              <?php if ($adminMenu) echo $adminMenu; else { ?>
-                <a class="nav-item" href="<?= $siteLink ?>admindb">
-                  <i class="pi pi-user"></i>
-                  <span class="nav-text"><?= gTxt('admindb') ?></span>
-                </a>
-              <?php } ?>
-            </li>
-          <?php break;
-          case 'catalog': ?>
-            <li>
-              <a class="nav-item" href="<?= $siteLink ?>catalog">
-                <i class="pi pi-user"></i>
-                <span class="nav-text"><?= gTxt('catalog') ?></span>
-              </a>
-            </li>
-          <?php break;
-          case 'fileManager': ?>
-            <li>
-              <a class="nav-item" href="<?= $siteLink ?>fileManager">
-                <i class="pi pi-folder-open"></i>
-                <span class="nav-text"><?= gTxt('fileManager') ?></span>
-              </a>
-            </li>
-          <?php break;
-          case 'dealers': ?>
-            <li>
-              <a class="nav-item" href="<?= $siteLink ?>dealers" aria-expanded="false">
-                <i class="pi pi-money-bill"></i>
-                <span class="nav-text"><?= gTxt('dealers') ?></span>
-              </a>
-            </li>
-          <?php break;
-          case 'hr': ?>
-            <li>
-              <hr>
-            </li>
-            <?php break;
-          default: ?>
-            <li>
-              <a class="nav-item" href="<?= $siteLink . $item?>">
-                <i class="pi pi-circle"></i>
-                <span class="nav-text"><?= gTxt($item) ?></span>
-              </a>
-            </li>
-          <?php break;
-          }
-        }
+  $adminMenu = createMenu('Администрирование', $dbTables);
+}
 
-      if (in_array('setting', $main->getSideMenu()) || $main->getLogin('admin')) { ?>
-        <li>
-          <a class="nav-item" href="<?= $siteLink ?>setting">
-            <i class="pi pi-sliders-h"></i>
-            <span class="nav-text"><?= gTxt('setting') ?></span>
+?>
+<div class="sidebar"> <!-- data-background-color="white"-->
+
+  <div class="logo ml-3">
+    <a href="<?= SITE_PATH ?>" class="simple-text logo-normal">Logo</a>
+  </div>
+  <div class="sidebar-wrapper">
+    <ul id="sideMenu" class="nav">
+      <?php if (PUBLIC_PAGE) { ?>
+        <li class="nav-item">
+          <a class="nav-link" href="<?= SITE_PATH ?>public">
+            <i class="material-icons">calculate</i>
+            <p>Калькулятор</p>
           </a>
         </li>
       <?php } ?>
+      <?php foreach ($main->getSideMenu() as $item) {
+        switch ($item) {
+          case 'orders': ?>
+            <li class="nav-item">
+              <a class="nav-link" href="<?= SITE_PATH ?>orders">
+                <i class="material-icons">table_chart</i>
+                <p>Заказы</p>
+              </a>
+            </li>
+            <?php break;
+          case 'calendar': ?>
+            <li class="nav-item">
+              <a class="nav-link" href="<?= SITE_PATH?>calendar">
+                <i class="material-icons">date_range</i>
+                <p>Календарь</p>
+              </a>
+            </li>
+            <?php break;
+          case 'customers': ?>
+            <li class="nav-item">
+              <a class="nav-link" href="<?= SITE_PATH ?>customers">
+                <i class="material-icons">assignment_ind</i>
+                <p>Клиенты</p>
+              </a>
+            </li>
+            <?php break;
+          case 'users': ?>
+            <li class="nav-item">
+              <a class="nav-link" href="<?= SITE_PATH ?>users">
+                <i class="material-icons">supervisor_account</i>
+                <p>Менеджеры</p>
+              </a>
+            </li>
+            <?php break;
+          case 'statistic': ?>
+            <li class="nav-item">
+              <a class="nav-link" href="<?= SITE_PATH ?>statistic">
+                <i class="material-icons">timeline</i>
+                <p>Статистика</p>
+              </a>
+            </li>
+            <?php break;
+          case 'admindb': ?>
+            <li class="nav-item">
+              <?php if($adminMenu) { ?>
+               <?= $adminMenu ?>
+               <?php } else { ?>
+                <a class="nav-link" href="<?= SITE_PATH ?>admindb">
+                  <i class="fa fa-database"></i>
+                  <p>Администрирование</p>
+                </a>
+              <?php } ?>
+            </li>
+            <?php break;
+          case 'catalog': ?>
+            <li class="nav-item">
+              <a class="nav-link" href="<?= SITE_PATH ?>catalog">
+                <i class="material-icons">view_list</i>
+                <p>Каталог</p>
+              </a>
+            </li>
+            <?php break;
+          case 'fileManager': ?>
+            <li class="nav-item">
+              <a class="nav-link" href="<?= SITE_PATH ?>fileManager">
+                <i class="material-icons">view_list</i>
+                <p>Файловый менеджер</p>
+              </a>
+            </li>
+            <?php break;
+        }
+      } ?>
+      <?php if (in_array('setting', $main->getSideMenu()) || $main->getSettings('admin')) { ?>
+      <li class="nav-item">
+        <a class="nav-link" href="<?= SITE_PATH ?>setting">
+          <i class="material-icons">settings</i>
+          <p>Настройки</p>
+        </a>
+      </li>
+      <?php } ?>
     </ul>
   </div>
-</aside>
+</div>

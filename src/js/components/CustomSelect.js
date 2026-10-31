@@ -1,7 +1,7 @@
 'use strict';
 
 const getTemplate = (data = [], placeholder, selectedId) => {
-  let text = placeholder || 'Placeholder по умолчанию';
+  let text = placeholder ?? 'Placeholder по умолчанию';
 
   const items = data.map(item => {
     let cls = '';

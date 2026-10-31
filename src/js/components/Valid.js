@@ -2,35 +2,26 @@
 
 import './_valid.scss';
 
-const defaultSendFunc = (data, finish, e) => {
-  f.setLoading(e.target);
-
-  f.sendOrder({data}).then(data => {
-    if (data.status) f.showMsg('Completed');
-    else f.showMsg('An error has occurred', 'error');
-
-    f.removeLoading(e.target);
-    finish();
-  })
-}
+import {c} from "./const";
 
 // Валидация
 export class Valid {
   constructor(param) {
     let {
-          sendFunc = defaultSendFunc,
-          form     = '#authForm',
-          submit   = '.confirmYes',
+          sendFunc = () => {},
+          formNode = false,
+          formSelector = '#authForm',
+          submitNode = false,
+          submitSelector = '#btnConfirmSend',
           fileFieldSelector = false, // Если поля не будет тогда просто after
           initMask = true,
-          phoneMask = '',
+          phoneMask = false,
         } = param;
 
     this.valid = new Set();
     try {
-      this.form = typeof form !== 'string' ? form : f.qS(form);
-      this.btn  = typeof submit !== 'string' ? submit : f.qS(submit);
-      this.btn  = this.btn || this.form.querySelector(submit);
+      this.form = formNode || document.querySelector(formSelector);
+      this.btn  = submitNode || this.form.querySelector(submitSelector) || document.querySelector(submitSelector);
     } catch (e) {
       console.log(e.message); return;
     }
@@ -40,14 +31,12 @@ export class Valid {
     // Form
     this.inputNodes = this.form.querySelectorAll('input[required]');
     this.inputNodes.forEach(n => {
-      if (!n.id) n.id = 'valid' + f.random();
-
       this.countNodes++;
       if (n.type === 'checkbox') n.addEventListener('click', e => this.validate(e));
       else {
         n.addEventListener('keyup', e => this.keyEnter(e));
 
-        initMask && n.type === 'tel' && f.initMask && f.initMask(n, phoneMask);
+        initMask && n.type === 'tel' && f.maskInit && f.maskInit(n, phoneMask);
       }
       n.addEventListener('blur', e => this.validate(e)); // может и не нужна
       this.validate(n);
@@ -62,37 +51,34 @@ export class Valid {
 
     // Send Btn
     this.btn.onclick = e => this.confirm(e, sendFunc);
-    if (this.countNodes === 0 || this.debug) this.checkConfirmBtn();
+    if (this.countNodes === 0 || this.debug) this.btnActivate();
+    else if (this.valid.size < this.countNodes) this.btnDisabled();
 
     this.onEventForm();
   }
 
   initParam(param) {
-    let prefix = param['classPrefix'] || 'cl-',
-        {
+    let {
           cssClass = {
-            error: prefix + 'input-error',
-            valid: prefix + 'input-valid',
-            btn  : prefix + 'confirm-disabled',
+            error: 'cl-input-error',
+            valid: 'cl-input-valid',
           },
-          debug = f.DEBUG || false,
+          debug = c.DEBUG || false,
         } = param;
     this.cssClass = cssClass;
     this.debug = debug;
     this.countNodes = 0;
   }
 
-  // Активировать/Деактивировать кнопку подтверждения
-  checkConfirmBtn() {
-    this.btn.disabled = this.valid.size < this.countNodes;
+  // Активировать/Деактивировать кнопки
+  btnActivate() {
+    if (this.valid.size >= this.countNodes) delete this.btn.dataset.disabled;
+    else this.btn.dataset.disabled = '1';
+  }
 
-    if (this.btn.disabled) {
-      this.btn.dataset.disabled = '1';
-      this.btn.classList.add(this.cssClass.btn);
-    } else {
-      delete this.btn.dataset.disabled;
-      this.btn.classList.remove(this.cssClass.btn);
-    }
+  btnDisabled() {
+    this.valid.clear();
+    this.btnActivate();
   }
 
   checkFileInput() {
@@ -115,7 +101,7 @@ export class Valid {
       this.btn.setAttribute('disabled', 'disabled');
     } else {
       this.setValidated(this.fileInput);
-      this.checkConfirmBtn();
+      this.btnActivate();
     }
   }
 
@@ -130,53 +116,44 @@ export class Valid {
 
   validate(e, ignoreValue = false) {
     let node = e.target || e, reg;
-    if (['checkbox', 'radio'].includes(node.type)) {
-      switch (node.type) {
-        case 'radio': case 'checkbox':
-          if (node.checked) this.setValidated(node);
-          else this.setErrorValidate(node);
-          break;
-      }
-    } else if (node.value.length > 0 || ignoreValue) {
+    if (node.value.length > 0 || ignoreValue) {
       switch (node.name) {
-        default: case 'name':
-          if (node.value.length < 2) this.setErrorValidate(node);
+        case 'name':
+          if (node.value.length < 2) { this.setErrorValidate(node); }
           else this.setValidated(node);
           break;
 
         case 'phone': case 'tel':
-          const count = node.dataset.mask ? node.dataset.mask.match(/_/g).length / 2 : 7;
-
-          reg = /^[^+\d]|[^\d\s()-]{2,}/; // первый символ +/цифра, остальные цифры/пробел/скобки/тире
-          if (node.value.length < count || reg.test(node.value)) this.setErrorValidate(node);
-          else this.setValidated(node);
-          break;
-
-        case 'email': case 'mail':
-          reg = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-          if (!reg.test(node.value.toLowerCase())) {
+          reg = /[^\d|\(|\)|\s|\-|_|\+]/;
+          if (node.value.length < 18 || reg.test(String(node.value).toLowerCase())) {
             this.setErrorValidate(node);
           } else this.setValidated(node);
           break;
 
-        case 'pass': case 'password':
-          if (node.value.length < 3) this.setErrorValidate(node);
-          else this.setValidated(node);
+        case 'email':
+          reg = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+          if (!reg.test(String(node.value).toLowerCase())) {
+            this.setErrorValidate(node);
+          } else this.setValidated(node);
           break;
+
+        default: {
+          this.setValidated(node);
+        }
       }
     } else this.removeValidateClasses(node);
-    !ignoreValue && this.checkConfirmBtn();
+    !ignoreValue && this.btnActivate();
   }
 
   // Показать/Скрыть (ошибки) валидации
   setErrorValidate(node) {
     this.removeValidateClasses(node);
-    node.parentNode.classList.add(this.cssClass.error);
+    node.classList.add(this.cssClass.error);
   }
 
   setValidated(node) {
     this.removeValidateClasses(node);
-    node.parentNode.classList.add(this.cssClass.valid);
+    node.classList.add(this.cssClass.valid);
     this.valid.add(node.id);
   }
 
@@ -192,37 +169,35 @@ export class Valid {
   }
 
   removeValidateClasses(node) {
-    node.parentNode.classList.remove(this.cssClass.error, this.cssClass.valid);
+    node.classList.remove(this.cssClass.error, this.cssClass.valid);
     this.valid.delete(node.id);
   }
 
-  finished() {
-    this.valid.clear();
-
-    this.form.querySelectorAll('input')
-        .forEach(n => {
-          n.value = '';
-          this.removeValidateClasses(n);
-        });
-
-    this.checkConfirmBtn();
-
-    // Добавить удаление события проверки файла
-  }
   confirm(e, sendFunc) {
     if (e.target.dataset.disabled) {
       this.inputNodes.forEach(target => this.validate({target}, true));
       return;
     }
 
-    const formData = new FormData(this.form);
+    const formData = new FormData(this.form),
+          finished = () => {
+
+            this.form.querySelectorAll('input')
+                .forEach(n => {
+                  n.value = '';
+                  this.removeValidateClasses(n);
+                });
+            this.btnDisabled();
+
+            //  добавить удаление события проверки файла
+          }
 
     this.fileInput && formData.delete(this.fileInput.name);
     this.files && Object.entries(this.files).forEach(([id, file]) => {
       formData.append(id, file, file.name);
     });
 
-    sendFunc(formData, this.finished.bind(this), e);
+    sendFunc(formData, finished, e);
   }
 
   clickCommon(e) {

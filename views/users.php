@@ -8,25 +8,24 @@
  */
 
 $field['content'] = template('parts/usersContent', $param);
+$field['pageFooter'] = '<div id="paginator" class="w-100"></div>';
 
 // Users/Manager custom field
 $managerFieldHtml = '';
 foreach ($managerField as $k => $item) {
-  $rndId = uniqid();
   switch ($item['type']) {
     case 'textarea':
       $input = '<textarea name="' . $k . '" class="form-control"></textarea>';
       break;
     case 'string': case 'number': case 'date': default:
-      $input = '<input id="' . $rndId . '" type="' . $item['type'] . '" class="form-control" name="' . $k . '">';
+      $input = '<input type="' . $item['type'] . '" class="form-control" name="' . $k . '">';
       break;
   }
 
-  $managerFieldHtml .= '<div class="form-floating managerField mb-3">' . $input .
-                       '<label id="' . $rndId . '">' . $item['name'] .'</label></div>';
+  $managerFieldHtml .= '<div class="form-group managerField"><label class="w-100">' . $item['name'] . $input .'</label></div>';
 }
 
-$field['footerContent'] .= <<<footerContent
+$field['footerContent'] = <<<footerContent
 <template id="permission">
   <option value="\${ID}">\${name}</option>
 </template>
@@ -35,61 +34,41 @@ $field['footerContent'] .= <<<footerContent
 </template>
 <template id="userForm">
   <form action="#">
-    <div class="form-floating my-3">
-      <input type="text" class="form-control" id="pName" placeholder="Имя" name="name" required>
-      <label for="pName">Имя</label>
+    <div class="form-group">
+      <label class="w-100">Имя пользователя: <input type="text" class="form-control" name="name"></label>
     </div>
-
-    <div class="form-floating mb-3">
-      <select class="form-select" id="permissionId" name="permissionId">$permission</select>
-      <label for="permissionId">Доступ</label>
+    <div class="form-group">
+      <label class="w-100">Доступ: 
+        <select class="form-control" name="permissionId">$permission</select>
+      </label>
     </div>
-
-    <div class="form-floating mb-3">
-      <input type="text" class="form-control" id="pLogin" placeholder="Логин" name="login" required>
-      <label for="pLogin">Логин</label>
+    <div class="form-group">
+      <label class="w-100">Логин: <input type="text" class="form-control" name="login"></label>
     </div>
-
-    <div class="form-floating mb-3">
-      <input type="password" class="form-control" id="pPassword" placeholder="Пароль" name="password" required>
-      <label for="pPassword">Пароль</label>
+    <div class="form-group">
+      <label class="w-100">Пароль: <input type="password" class="form-control" name="password"></label>
     </div>
-
-    <div class="form-floating mb-3">
-      <input type="tel" class="form-control" id="pPhone" placeholder="Телефон" name="phone" required>
-      <label for="pPhone">Телефон</label>
+    <div class="form-group">
+      <label class="w-100">Телефон: <input type="tel" class="form-control" name="phone"></label>
     </div>
-
-    <div class="form-floating mb-3">
-      <input type="email" class="form-control" id="pEmail" placeholder="Почта" name="email" required>
-      <label for="pEmail">Почта</label>
+    <div class="form-group">
+      <label class="w-100">Почта: <input type="email" class="form-control" name="email"></label>
     </div>
-
     $managerFieldHtml
-
-    <div id="changeField" class="row">
-      <div class="col-6 ps-4">
-        <label class="w-100" for="pActivity" role="button">Активность:</label>
-      </div>
-      <div class="col-6">
-        <div class="form-check form-switch mb-3 formRow text-center">
-          <input class="form-check-input float-none" type="checkbox" role="switch" name="activity" id="pActivity">
-        </div>
-      </div>
+    <div id="changeField">
+      <label class="w-100">Активность: <input type="checkbox" name="activity"></label>
     </div>
   </form>
 </template>
+
 <template id="userChangePassForm">
   <form action="#">
     <!--label>Старый пароль: <input type="password" name="oldPass"></label-->
-    <div class="form-floating mb-3">
-      <input type="password" class="form-control" id="changePassword" placeholder="Новый пароль" name="newPass" required>
-      <label for="changePassword">Новый пароль</label>
+    <div class="form-group">
+      <label class="w-100">Новый пароль: <input type="password" class="form-control" name="newPass"></label>
     </div>
-
-    <div class="form-floating mb-3">
-      <input type="password" class="form-control" id="repeatPassword" placeholder="Повторить пароль" name="repeatPass" required>
-      <label for="repeatPassword">Повторить пароль</label>
+    <div class="form-group">
+      <label class="w-100">Повторить пароль: <input type="password" class="form-control" name="repeatPass"></label>
     </div>
   </form>
 </template>

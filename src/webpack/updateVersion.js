@@ -2,30 +2,17 @@
  * @var process - global process
  */
 
-const path   = require('path'),
-      fs     = require('fs'),
+const path    = require('path'),
+      fs      = require('fs'),
       crypto = require('crypto'),
 
-      checkFiles = [
-        'controller/c_admindb.php',
-        'controller/c_calendar.php',
-        'controller/c_catalog.php',
-        'controller/c_customers.php',
-        'controller/c_fileManager.php',
-        'controller/c_login.php',
-        'controller/c_orders.php',
-        'controller/c_public.php',
-        'controller/c_setting.php',
-        'controller/c_statistic.php',
-        'controller/c_users.php',
+      publicFileName = 'public.php',
+      publicDirName = 'public';
 
-        'views/base.php',
-      ];
-/*
-/!**
+/**
  * Получить результирующую папку в зависимости от расположения папки src
  * @returns string
- *!/
+ */
 const getPublicPath = () => {
   let cDir    = __dirname,
       scanDir = fs.readdirSync(cDir);
@@ -44,7 +31,7 @@ const getPublicPath = () => {
   }
 
   return '';
-}*/
+}
 
 /**
  * Обновить версию ссылок
@@ -56,23 +43,21 @@ const setVersion = str => {
                    .update(Math.random().toString())
                    .digest('hex')
                    .slice(0, 10);
-  return str.replace(/\.(css|js)(|.+)'/i, `.$1?ver=${rand}'`);
+  return str.replace(/\.(css|js)(|.+)'/i, `.$1?ver=${rand}\'`);
 }
 
-checkFiles.forEach(pathF => {
-  let publicFilePath = path.resolve(__dirname, '../../', pathF);
+let publicFilePath = getPublicPath();
+if (!publicFilePath) process.exit();
 
-  let publicFileContent = fs.readFileSync(publicFilePath, {encoding: 'utf8'}),
-      publicFileRow = publicFileContent.split('\n');
+let publicFileContent = fs.readFileSync(publicFilePath, {encoding: 'utf8'}),
+    publicFileRow = publicFileContent.split('\n');
 
-  publicFileRow = publicFileRow.map((row, i) => {
-    if (row.includes('CORE_CSS') || row.includes('CORE_JS')) {
-      return setVersion(row);
-    }
-    return row;
-  });
-
-  fs.writeFileSync(publicFilePath, publicFileRow.join('\n'));
+publicFileRow = publicFileRow.map((row, i) => {
+  if (row.includes('cssLinks') || row.includes('jsLinks')) {
+    return setVersion(row);
+  }
+  return row;
 });
 
+fs.writeFileSync(publicFilePath, publicFileRow.join('\n'));
 console.log('Version update complete');

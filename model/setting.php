@@ -1,334 +1,222 @@
 <?php if (!defined('MAIN_ACCESS')) die('access denied!');
 
 /**
- * @var Main $main - global main object
+ * @var $main - global main object
  *
- * @var string $cmsAction - extract from query in main.php
- * @var array $user - extract from query
+ * @var $setAction - fromQuery
+ * @var $orderMail - fromQuery
+ * @var $orderMailCopy - fromQuery
+ * @var $login - fromQuery
+ * @var $password - fromQuery
+ * @var $passwordRepeat - fromQuery
+ * @var $customization - fromQuery
  */
+
+/**
+ * Set manager custom field from Request
+ */
+function setOrderMailField() {
+  define('KEY' , 'orderMail');
+
+  $result = [];
+
+  array_map(function ($key) use (&$result) {
+    if (stripos($key, KEY) !== false) {
+      $id = str_replace(KEY, '', $key);
+
+      //$fieldKey = preg_replace('/\D\S/g', '', trim($_REQUEST[$key]));
+      $fieldKey = trim($_REQUEST[$key]);
+      $fieldIndex = translit($fieldKey);
+      $fieldType = isset($_REQUEST[TYPE . $id]) ? $_REQUEST[TYPE . $id] : 'string';
+
+      $result[$fieldIndex] = ['name' => $fieldKey, 'type' => $fieldType];
+    }
+  }, array_keys($_REQUEST));
+
+  return $result;
+}
+
+/**
+ * Set manager custom field from Request
+ */
+function setManagerCustomField() {
+  define('KEY' , 'mCustomFieldKey');
+  define('TYPE' , 'mCustomFieldType');
+
+  $result = [];
+
+  array_map(function ($key) use (&$result) {
+    if (stripos($key, KEY) !== false) {
+      $id = str_replace(KEY, '', $key);
+
+      //$fieldKey = preg_replace('/\D\S/g', '', trim($_REQUEST[$key]));
+      $fieldKey = trim($_REQUEST[$key]);
+      $fieldIndex = translit($fieldKey);
+      $fieldType = isset($_REQUEST[TYPE . $id]) ? $_REQUEST[TYPE . $id] : 'string';
+
+      $result[$fieldIndex] = ['name' => $fieldKey, 'type' => $fieldType];
+    }
+  }, array_keys($_REQUEST));
+
+  return $result;
+}
 
 $db = $main->getDB();
 
-switch ($cmsAction) {
-  case 'saveSetting':
-    $usersId = $main->getLogin('id');
-    $user = json_decode($user ?? '[]', true);
-    $userName = !empty($user['name']) ? $user['name'] : 'noName';
+if (isset($setAction)) {
+  switch ($setAction) {
+    case 'save':
+      $usersId = $priority ?? false;
 
-    // Change Setting
-    if (USE_DATABASE && $usersId) {
-
-      // Update User
-      if (!empty($user)) {
-
-        // Test unique login
-        $users = $db->selectQuery('users', '*', ' login = "' . $user['login'] . '"');
-        if (count($users) > 1 || (count($users) > 0 && $users[0]['ID'] !== $usersId)) {
-          $result['error'] = gTxt('Login exist');
-          break;
-        }
-
-        $user['customization'] = $user['customization'] ?? [];
-
-        // Only one login
-        if ($user['onlyOne']) {
-          $user['customization']['onlyOne'] = true;
-        }
-
-        $param[$usersId] = [
-          'name'          => $userName,
-          'login'         => $user['login'],
-          'contacts'      => json_encode($user['fields'] ?? []),
-          'customization' => json_encode($user['customization']),
-        ];
-
-        // Check password
-        if (!empty($user['password']) && $user['password'] === $user['passwordRepeat']) {
-          $param[$usersId]['password'] = password_hash($user['password'], PASSWORD_BCRYPT);
-          $param[$usersId]['hash'] = password_hash($user['password'], PASSWORD_BCRYPT);
-        }
-
-        // Save user
+      // Change Setting
+      if (USE_DATABASE && $usersId) {
         $columns = $db->getColumnsTable('users');
-        $result = $db->insert($columns, 'users', $param, true);
-
-        // Set new User Params
-        if (empty($result['error'])) {
-          $_SESSION['login'] = $user['login'];
-          $_SESSION['name'] = $userName;
-          isset($param[$usersId]['hash']) && $_SESSION['hash'] = $param[$usersId]['hash'];
-        }
-      }
-
-      // Permission
-      // Test unique permission name
-      $permissions = json_decode($permissions ?? '[]', true);
-      if (count($permissions)) {
-        $param = [
-          'new'    => [],
-          'change' => [],
+        $param[$usersId] = [
+          'login'         => $login,
+          'customization' => $customization,
         ];
 
-        foreach ($permissions as $permission) {
-          $id = $permission['id'];
+        if ($password && $password === $passwordRepeat) $param[$usersId]['password'] = password_hash($password, PASSWORD_BCRYPT);
 
-          if (isset($permission['delete'])) {
-            $result['error']['del'] = $db->deleteItem('permission', [$id]);
-            continue;
-          }
+        $result['error'] = $db->insert($columns, 'users', $param, true);
 
-          $field = [
-            'name'       => $permission['name'],
-            'properties' => json_encode($permission['properties']),
-          ];
+        // Доступы
+        if (isset($permIds)) {
+          $columns = $db->getColumnsTable('permission');
+          $param = [];
 
-          // Js random 0 - 1
-          if ($id < 1) $param['new'][uniqid()] = $field;
-          else $param['change'][$id] = $field;
-        }
-
-        $columns = $db->getColumnsTable('permission');
-        $result = $db->insert($columns, 'permission', $param['new']);
-        $result = $db->insert($columns, 'permission', $param['change'], true);
-      }
-      unset($permissions);
-
-      // Статусы
-      if (isset($orderStatus)) {
-        //$currentTable = $db->loadTable('order_status');
-        $param = [
-          'new'    => [],
-          'change' => [],
-        ];
-
-        foreach (json_decode($orderStatus, true) as $status) {
-          $id = $status['ID'];
-
-          if (isset($status['delete'])) {
-            $result['statusDel']['error'] = $db->deleteItem('order_status', [$id]);
-            continue;
-          }
-
-          // Js random 0 - 1
-          if ($id < 1) {
-            $param['new'][uniqid()] = [
-              'code' => $status['code'],
-              'name' => $status['name'],
-              'sort' => $status['sort'],
-            ];
-          } else {
-            $param['change'][$id] = [
-              'code' => $status['code'],
-              'name' => $status['name'],
-              'sort' => $status['sort'],
-            ];
-          }
-        }
-
-        $columns = $db->getColumnsTable('order_status');
-        $result['statusAdd']['error'] = $db->insert($columns, 'order_status', $param['new']);
-        $result['statusChange']['error'] = $db->insert($columns, 'order_status', $param['change'], true);
-        $result['statusList'] = $db->loadOrderStatus();
-      }
-
-      // Rate
-      $rate = json_decode($rate ?? '[]', true);
-      if (count($rate)) {
-        // Auto update
-        $main->setSettings(VC::AUTO_REFRESH, $rate[VC::AUTO_REFRESH]);
-        $main->setSettings(VC::SERVER_REFRESH, $rate[VC::SERVER_REFRESH]);
-
-        $rate = $rate['data'];
-        $param = [
-          'new'    => [],
-          'change' => [],
-        ];
-
-        foreach ($rate as $item) {
-          $id = $item['ID'];
-
-          if (isset($item['delete']) && boolValue($item['delete']) === true) {
-            $result['error']['del'] = $db->deleteItem('money', [$id]);
-            continue;
-          }
-
-          $field = [
-            'code' => $item['code'],
-            'name' => $item['name'],
-            'short_name' => $item['shortName'],
-            'rate' => $item['rate'],
-            'main' => intval($item['main']),
-          ];
-
-          if ($id === 'new') $param['new'][uniqid()] = $field;
-          else $param['change'][$id] = $field;
-        }
-
-        $columns = $db->getColumnsTable('money');
-        $result['error']['addRate'] = $db->insert($columns, 'money', $param['new']);
-        $result['error']['changeRate'] = $db->insert($columns, 'money', $param['change'], true);
-      }
-    } else {
-      $hash = '';
-
-      // Check password
-      if (!empty($user['password']) && $user['password'] === $user['passwordRepeat']) {
-        $password = $hash = password_hash($user['password'], PASSWORD_BCRYPT);
-      }
-
-      file_put_contents(SYSTEM_PATH, implode('|||', [$user['login'], $user['password'], $hash])); // todo перенести в DB
-      //$setting['onlyOne'] = boolval($user['onlyOne']);
-    }
-
-    // Global mail setting
-    $mail = json_decode($mail ?? '[]', true);
-    !empty($mail['target'])     && $main->setSettings(VC::MAIL_TARGET, $mail['target']);
-    !empty($mail['targetCopy']) && $main->setSettings(VC::MAIL_TARGET_COPY, $mail['targetCopy']);
-    !empty($mail['subject'])    && $main->setSettings(VC::MAIL_SUBJECT, $mail['subject']);
-    !empty($mail['fromName'])   && $main->setSettings(VC::MAIL_FROM_NAME, $mail['fromName']);
-
-    // Global manager setting
-    $managerFields = json_decode($managerFields ?? '[]', true);
-    count($managerFields) && $main->setSettings(VC::MANAGER_FIELDS, $managerFields);
-
-    // Global other setting
-    $main->setSettings(VC::STATUS_DEFAULT, $statusDefault ?? $main->db->selectQuery('order_status', 'ID')[0]);
-    $other = json_decode($otherFields ?? '[]', true);
-    $main->setSettings(VC::PHONE_MASK_GLOBAL, $other['phoneMask']['global'] ?? $main->getSettings(VC::PHONE_MASK_GLOBAL) ?? '+_ (___) ___ __ __')
-         ->setSettings(VC::CATALOG_IMAGE_SIZE, $other[VC::CATALOG_IMAGE_SIZE] ?? []);
-
-    $main->saveSettings();
-    break;
-  case 'load':
-    if (USE_DATABASE) $result['user'] = $db->getUser($main->getLogin(), 'ID, login, customization');
-    else $result['user'] = $db->getUserFromFile($main->getLogin(), '', $main->checkStatus());
-
-    $result['setting'] = $main->getSettings();
-    break;
-
-  // Options property
-  case 'createProperty': case 'createDealersProperty':
-  case 'changeProperty': case 'changeDealersProperty':
-    $propKey   = in_array($cmsAction, ['createProperty', 'changeProperty']) ? VC::OPTION_PROPERTIES : VC::DEALER_PROPERTIES;
-    $cmsAction = stripos($cmsAction, 'create') ? 'create' : 'change';
-    $property  = json_decode($property ?? '[]', true);
-
-    $tableName = $property['newName'];
-    $tableCode = strtolower(translit($property['newCode'] ?? $tableName));
-    $propName = 'prop_' . str_replace('prop_', '', $tableCode);
-    $setting = $main->getSettings($propKey);
-
-    if ($property['type'] === 'select') { // Справочник
-      $param = [];
-      foreach ($property['fields'] as $field) {
-        if ($cmsAction === 'change') $param[translit($field['name'])] = $field['type'];
-        else {
-          $param[$field['name']] = [
-            'newName' => $field['newName'],
-            'type'    => $field['type'],
-          ];
-        }
-      }
-
-      if (!isset($setting[$propName])) {
-        $result['error'] = $db->createPropertyTable($propName, $param);
-      } else if ($cmsAction === 'change') {
-        $result['error'] = $db->changePropertyTable($propName, $param);
-      } else $result['error'] = 'Property exist';
-
-      $setting[$propName]['name'] = $tableName;
-      $main->setSettings($propKey, $setting)->saveSettings();
-    } else { // остальные
-      $dataType = $property['type'];
-
-      // If changed, else remove old value.
-      if ($cmsAction === 'change') unset($setting[$property['code']]);
-
-      if (!isset($setting[$propName])) {
-        $setting[$propName] = [
-          'name' => $tableName,
-          'type' => $dataType,
-        ];
-        $main->setSettings($propKey, $setting)->saveSettings();
-      } else $result['error'] = 'Property exist';
-    }
-    break;
-  case 'loadProperties': case 'loadDealersProperties':
-    $propKey = $cmsAction === 'loadProperties' ? VC::OPTION_PROPERTIES : VC::DEALER_PROPERTIES;
-    $result[$propKey] = [];
-    $setting = $main->getSettings($propKey);
-    $dbProperties = array_keys($db->getTables('prop'));
-
-    if (is_array($setting)) {
-      function getPropertyField($name, $type) {
-        if (includes($name, '_ids')) $type = 'file';
-
-        switch ($type) {
-          case 'varchar(255)':  $type = 'string'; break;
-          case 'varchar(1000)': $type = 'textarea'; break;
-          case 'float': case 'double': $type = 'float'; break;
-          case 'decimal(10,4)': $type = 'money'; break;
-          case 'timestamp':     $type = 'date'; break;
-          case 'int(1)':        $type = 'bool'; break;
-          case 'int(20)':       $type = 'int'; break;
-        }
-
-        return [
-          'name' => $name,
-          'type' => $type,
-        ];
-      }
-
-      foreach ($setting as $code => $table) {
-        if (isset($table['type']) || in_array($code, $dbProperties)) {
-          $type = $table['type'] ?? 'select';
-          $param = [
-            'name' => $table['name'],
-            'code' => $code,
-            'type' => $type,
-          ];
-
-          if ($type === 'select') {
-            $columns = $db->getColumnsTable($code);
-
-            if (count($columns) > 2) {
-              $fields = [];
-
-              foreach ($columns as $column) {
-                if (in_array($column['columnName'], ['ID', 'name'])) continue;
-
-                $fields[] = getPropertyField($column['columnName'], $column['type']);
-              }
-
-              $param['fields'] = $fields;
+          foreach (explode(',', $permIds) as $id) {
+            $param[$id]['access_val'] = [];
+            // Меню
+            if (isset($_REQUEST['permMenuAccess_' . $id])) {
+              $param[$id]['access_val']['menuAccess'] = $_REQUEST['permMenuAccess_' . $id];
             }
+
+            $param[$id]['access_val'] = json_encode($param[$id]['access_val']);
           }
 
-          $result[$propKey][] = $param;
+          $result['error'] = $db->insert($columns, 'permission', $param, true);
+        }
+
+        // Статусы
+        if (isset($orderStatus)) {
+          $columns = $db->getColumnsTable('order_status');
+          $currentTable = $db->loadTable('order_status');
+          $param = [];
+          foreach (json_decode($orderStatus, true) as $status) {
+            $param[$status['ID']]['name'] = $status['name'];
+          }
+          $result['error'] = $db->insert($columns, 'order_status', $param, false);
+        }
+      } else {
+        $hash = '';
+
+        if (isset($password) && isset($passwordRepeat) && $password === $passwordRepeat)
+          $hash = password_hash($password, PASSWORD_BCRYPT);
+
+        if(!isset($passwordRepeat) && !file_exists(SYSTEM_PATH)) {
+          $password = '123';
+          $hash = password_hash($password, PASSWORD_BCRYPT);
+        }
+
+        file_put_contents(SYSTEM_PATH, implode('|||', [$login, $password, $hash]));
+      }
+
+      // Global mail setting
+      // Переписать и согласовать с mail.php загрузка пустые строки не сохранять
+      $setting = getSettingFile();
+      isset($orderMail) && $setting['orderMail'] = $orderMail;
+      isset($orderMailCopy) && $setting['orderMailCopy'] = $orderMailCopy;
+      isset($orderMailSubject) && $setting['orderMailSubject'] = $orderMailSubject;
+      isset($orderMailFromName) && $setting['orderMailFromName'] = $orderMailFromName;
+      !USE_DATABASE && $setting['onlyOne'] = isset($onlyOne);
+
+      // Global manager setting
+      $managerSetting = setManagerCustomField();
+      count($managerSetting) && $setting['managerSetting'] = $managerSetting;
+
+      setSettingFile($setting);
+      break;
+    case 'load':
+      if (USE_DATABASE) $result['user'] = $db->getUser($main->getLogin(), 'ID, login, customization');
+      else $result['user'] = $db->getUserFromFile($main->getLogin(), '', $main->checkStatus('ok'));
+
+      $result['setting'] = getSettingFile();
+      break;
+    case 'addPermType':
+      if (isset($permType)) {
+        $dbKey = translit($permType);
+
+        $permissions = $db->loadTable('permission');
+
+        foreach ($permissions as $item) {
+          if ($item['name'] === $dbKey) {
+            $result['error'] = "Запись $permType существует";
+            break;
+          }
+        }
+
+        if (!isset($result['error'])) {
+          $columns = $db->getColumnsTable('permission');
+          $param = ['0' => [
+            'name' => $dbKey,
+            'access_val' => '[]',
+          ]];
+          $result['error'] = $db->insert($columns, 'permission', $param);
+
+          $filePath = ABS_SITE_PATH . 'lang/dictionary.php';
+          if (!count($result['error']['result']) && file_exists($filePath)) {
+            $file = file($filePath);
+            $file[count($file) - 1] = "  '$dbKey' => '$permType',\r\n];\r\n";
+            file_put_contents($filePath, $file);
+          }
         }
       }
-    }
-    break;
-  case 'loadProperty':
-    if (isset($props)) {
-      $result['propertyValue'] = $db->getColumnsTable($props); // todo загрузить просто
-    }
-    break;
-  case 'deleteProperty':  case 'deleteDealersProperty':
-    $propKey = $cmsAction === 'deleteProperties' ? VC::OPTION_PROPERTIES : VC::DEALER_PROPERTIES;
-    $property = json_decode($property ?? '[]', true);
-    $setting = $main->getSettings($propKey);
+      break;
+    case 'removePermType':
+      if (isset($permId)) {
+        $result['error'] = $db->deleteItem('permission', [$permId]);
+      }
+      break;
 
-    if (!empty($property['fields'])) {
-      $db->delPropertyTable([$property['code']]);
-    }
+    case 'createProperty':
+    case 'changeProperty':
+      if (isset($tableName) && isset($dataType) && !empty($tableName)) {
+        $propertySetting = [];
+        $setting = getSettingFile();
 
-    if (isset($property['code'])) {
-      unset($setting['prop_' . str_replace('prop_', '', $property['code'])]);
+        $tableCode = $tableCode ?? translit($tableName);
+        $propName = 'prop_' . str_replace('prop_', '', $tableCode);
+        $dataType = str_replace('s_', '', $dataType);
 
-      $main->setSettings($propKey, $setting)->saveSettings();
-    }
-    break;
+        if (!isset($setting['propertySetting'][$propName]) || $setAction === 'changeProperty') {
+          $setting['propertySetting'][$propName] = [
+            'name' => $tableName,
+            'type' => $dataType,
+          ];
+          setSettingFile($setting);
+        } else {
+          $result['error'] = 'Property exist';
+        }
+      } else $result['error'] = 'Property name not exist';
+      break;
+    case 'loadProperties':
+      $setting = $setting ?? getSettingFile();
+      if (isset($setting['propertySetting'])) {
+         $result['propertiesTables'] = array_filter($setting['propertySetting'],
+           function ($prop) { return isset($prop['type']);}
+         );
+      }
+      break;
+    case 'delProperties':
+      if (isset($props) && ($setting = getSettingFile()) && isset($setting['propertySetting'])) {
+        $setting['propertySetting'] = array_filter($setting['propertySetting'], function ($item) use ($props) {
+          return !in_array($item, $props);
+        }, ARRAY_FILTER_USE_KEY);
+
+        setSettingFile($setting);
+      }
+      break;
+
+  }
 }
-
-if (isset($result)) $main->response->setContent($result);

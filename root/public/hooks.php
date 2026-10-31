@@ -1,13 +1,12 @@
 <?php
+/**
+ * addCpNumber - добавление кода КП предложения.
+ * по умолчанию в функцию попадают ID из БД, отчет из калькулятора в виде json.
+ */
+// addHook('addCpNumber', 'funcName');
 
 /**
- * @default hooks addCpNumber
+ * orderTemplate - массив с частями шаблона страницы заказов.
+ * один параметр - массив.
+ * например можно добавить подключить свои файлы.
  */
-
-/**
- * @param Main $main - global<br>
- * @see VC for keys values
- * $main->addControllerField(VC::BASE_JS_LINKS, 'custom.js')<br>
- * $main->getCmsParam(VC::MAIL_TARGET)
- */
-// addHook(VC::HOOKS__xxx, 'funcName');

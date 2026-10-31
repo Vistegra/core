@@ -7,11 +7,11 @@
     "updateVersion": "node ./webpack/updateVersion.js",
 
     "publicBuildProd": "webpack --env production --config ./webpack/webpack.config.js && node ./webpack/updateVersion.js",
+
     "publicBuildDev": "webpack --config ./webpack/webpack.config.js",
 
-    "localCypressTest": "cypress open --project ../../ --config-file ./public/src/test/cypress.json --env external=false",
-    "cypressDeployProd": "cypress open --project ../../ --config-file ./public/src/test/cypress.json --env external=true",
+    "localCypressTest": "cypress open --project ../../ --config-file ./public/src/tests/cypress.json --env external=false",
 
-    "createDealerDev": "node ./webpack/createDealerDev.js"
+    "cypressDeployProd": "cypress open --project ../../ --config-file ./public/src/tests/cypress.json --env external=true"
   }
 }

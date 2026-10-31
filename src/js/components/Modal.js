@@ -2,37 +2,8 @@
 
 import './_modal.scss';
 
-import 'sweetalert2/src/sweetalert2.scss';
-import Swal from 'sweetalert2/dist/sweetalert2.js';
-
-const findNode = (n, role) => n.querySelector(`[data-role="${role}"]`);
-
-const getCustomElements = () => new Promise(resolve => {
-  customElements.define('shadow-modal', class extends HTMLElement {
-    connectedCallback() {
-      resolve(this.attachShadow({mode: 'open'}));
-    }
-  });
-});
-
-const templatePopup = pr => {
-  return `
-    <div class="${pr}modal-overlay">
-      <div class="${pr}modal" data-role="window">
-        <div class="${pr}modal-header">
-          <div class="${pr}modal-title" data-role="title">Title</div>
-          <button type="button" class="${pr}modal-close" data-action="confirmNo">
-            <div class="${pr}close-icon"></div>
-          </button>
-        </div>
-        <div class="${pr}modal-content" data-role="content"></div>
-        <div class="${pr}modal-footer" data-role="bottomFieldBtn">
-          <input type="button" class="confirmYes btn btn-success" value="Подтвердить" data-action="confirmYes">
-          <input type="button" class="closeBtn btn btn-warning" value="Отмена" data-action="confirmNo">
-        </div>
-      </div>
-    </div>`;
-};
+import {c} from "./const.js";
+import {f} from "./func.js";
 
 /**
  * Модальное окно
@@ -41,29 +12,20 @@ const templatePopup = pr => {
  * showDefaultButton: boolean,
  * btnConfig: boolean }}
  */
-export const ModalOur = function (param = {}) {
+export const Modal = (param = {}) => {
   let modal = Object.create(null),
       data = Object.create(null),
       {
-        prefix = 'vs_',
-        modalId = 'adminPopup' + f.random(),
+        modalId = 'adminPopup',
         template = '',
         showDefaultButton = true,
         btnConfig = false,
       } = param;
 
-  modal.setParam = function (param) {
-    this.wrap.id = param.modalId || '';
-    //this.window   =
-    //this.title    =
-    //this.content  =
-    //this.btnField =
+  const findNode = (n, role) => n.querySelector(`[data-role="${role}"]`);
 
-    if (this.btnConfirm && typeof param.beforeConfirm === 'function') this.btnConfirm.addEventListener('mousedown', param.beforeConfirm);
-    if (this.btnCancel && typeof param.beforeCancel === 'function') this.btnCancel.addEventListener('mousedown', param.beforeCancel);
-  }
   modal.bindBtn = function () {
-    this.wrap.querySelectorAll(`.${prefix}modal-close, .confirmYes, .closeBtn`)
+    this.wrap.querySelectorAll('.close-modal, .confirmYes, .closeBtn')
         .forEach(n => n.addEventListener('click', () => this.hide()));
   }
   modal.btnConfig = function (key, param = Object.create(null)) {
@@ -86,23 +48,14 @@ export const ModalOur = function (param = {}) {
    * Show modal window
    * @param {string|HTMLElement} title
    * @param {string|HTMLElement} content
-   * @param {object} param
-   * @param {string} param.modalId - add wrap id
-   * @param {function} param.beforeConfirm - add wrap id
-   * @param {function} param.beforeCancel - add wrap id
    */
-  modal.show = function (title, content = '', param= {}) {
-    if (this.title && title) {
-      f.eraseNode(this.title);
-      typeof title === 'string' ? this.title.insertAdjacentHTML('afterbegin', title)
-                                : this.title.append(title);
-    }
+  modal.show = function (title, content = '') {
+    this.title && title !== undefined && f.eraseNode(this.title).append(title);
     if (this.content && content) {
       f.eraseNode(this.content);
       typeof content === 'string' ? this.content.insertAdjacentHTML('afterbegin', content)
                                   : this.content.append(content);
     }
-    this.setParam(param);
 
     data.bodyOver = document.body.style.overflow;
     data.scrollY = Math.max(window.scrollY, window.pageYOffset, document.body.scrollTop);
@@ -114,44 +67,37 @@ export const ModalOur = function (param = {}) {
     }
 
     this.wrap.style.display = 'flex';
-    setTimeout(() => {
-      this.wrap.classList.add(prefix + 'active');
-      this.window.classList.add(prefix + 'active');
-    }, 10);
-
-    this.onEvent();
+    this.wrap.classList.add('active');
+    this.window.classList.add('active');
+    modal.onEvent();
   }
 
   modal.hide = function () {
-    const scrollY = Math.max(window.scrollY, window.pageYOffset, document.body.scrollTop);
+    this.wrap.classList.remove('active');
+    this.window.classList.remove('active');
 
-    this.wrap.classList.remove(prefix + 'active');
-    this.window.classList.remove(prefix + 'active');
-    scrollY !== data.scrollY && window.scrollTo(0, data.scrollY);
-
-    setTimeout(() => {
+    setTimeout( () => {
+      this.wrap.style.display = 'none';
       document.body.style.overflow = data.bodyOver || 'initial';
+      window.scrollTo(0, data.scrollY);
       if (document.body.style.paddingRight === '16px')
         document.body.style.paddingRight = data.bodyPaddingRight || 'initial';
-
-      this.wrap.style.display = 'none';
     }, 300);
-    //f.eraseNode(modal.content);
+    //c.eraseNode(modal.content);
   }
 
   modal.destroy = function () {
-    /*this.wrap.querySelectorAll('.modal-close, .confirmYes, .closeBtn')
-          .forEach(n => n.removeEventListener('click', () => this.hide()));
-    */
+    this.hide();
+    this.wrap.querySelectorAll('.close-modal, .confirmYes, .closeBtn')
+        .forEach(n => n.removeEventListener('click', () => this.hide()));
     this.wrap.remove();
   }
 
   modal.setTemplate = function () {
-    //const sNode = await getCustomElements();
     const node = document.createElement('div');
-    node.insertAdjacentHTML('afterbegin', template || templatePopup(prefix, modalId));
+    node.insertAdjacentHTML('afterbegin', template || templatePopup());
 
-    this.wrap     = node.firstElementChild;
+    this.wrap     = node.children[0];
     this.window   = findNode(node, 'window');
     this.title    = findNode(node, 'title');
     this.content  = findNode(node, 'content');
@@ -161,29 +107,33 @@ export const ModalOur = function (param = {}) {
     else this.btnField && !showDefaultButton && f.eraseNode(this.btnField);
 
     let btnY = this.wrap.querySelector('.confirmYes, [data-action="confirmYes"], [data-target="confirmBtn"]'),
-        btnN = this.wrap.querySelectorAll('.closeBtn, [data-action="confirmNo"], [data-target="cancelBtn"]');
+        btnN = this.wrap.querySelector('.closeBtn, [data-action="confirmNo"], [data-target="cancelBtn"]');
     btnY && (this.btnConfirm = btnY);
-    btnN && (this.btnCancel = btnN.length === 1 ? btnN[0] : btnN);
+    btnN && (this.btnCancel = btnN);
 
-    //sNode.insertAdjacentHTML('afterbegin', '');
-    //sNode.append(this.wrap);
-    this.bindBtn();
+    document.body.append(node.children[0]);
+  }
+
+  const templatePopup = () => {
+    return `
+    <div class="modal-overlay" id="${modalId}">
+      <div class="modal p-3" data-role="window">
+        <button type="button" class="close-modal">
+          <div class="close-icon"></div>
+        </button>
+        <div class="modal-title" data-role="title">Title</div>
+        <div class="w-100 pt-20" data-role="content"></div>
+        <div class="modal-button" data-role="bottomFieldBtn">
+          <input type="button" class="confirmYes btn btn-success" value="Подтвердить" data-action="confirmYes">
+          <input type="button" class="closeBtn btn btn-warning" value="Отмена" data-action="confirmNo">
+        </div>
+      </div>
+    </div>`;
   }
 
   modal.setTemplate();
-  modal.setParam(param);
-  document.body.append(modal.wrap);
-  //document.body.insertAdjacentHTML('beforeend', '<shadow-modal></shadow-modal>');
+  //btnConfig && modal.btnConfig(btnConfig);
+  modal.bindBtn();
 
   return modal;
-}
-
-/**
- *
- * @param {object} param
- * @return sweetalert2
- * @constructor
- */
-export const Modal = function (param = {}) {
-  return Swal.fire(param);
 }

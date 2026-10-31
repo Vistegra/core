@@ -1,0 +1,28 @@
+{
+  "baseUrlLocal": "http://beton/",
+  "baseUrlExternal": "http://vistegra.by/graddoor/",
+
+  "authLogin": "admin",
+  "authPass" : "123",
+
+  "viewportHeight": 960,
+  "viewportWidth": 1480,
+
+  "animationDistanceThreshold" : 5,
+  "screenshotOnRunFailure": false,
+
+  "componentFolder": "./core/src/tests/cypress/component",
+  "fixturesFolder": "./core/src/tests/cypress/fixtures",
+  "integrationFolder": "./core/src/tests/cypress/integration",
+  "supportFile": "./core/src/tests/cypress/support/index.js",
+
+  "screenshotsFolder": "./core/src/tests/cypress/screenshots",
+  "videosFolder": "./core/src/tests/cypress/videos",
+  "downloadsFolder" : "./core/src/tests/cypress/downloads",
+  "pluginsFile" : "./core/src/tests/cypress/plugins",
+
+  "cypress-watch-and-reload": {
+    "watch": ["./core/assets/*", "./core/views/*"]
+  },
+  "experimentalSessionSupport": false
+}

@@ -7,7 +7,6 @@ export const data = {
     confirmDisabled: true,
     title: '',
     single: true,
-    displayContinue: false,
   },
 
   options: [],
@@ -16,6 +15,7 @@ export const data = {
 
   option: {
     id           : 0,
+    type         : 0,
     elementId    : 0,
     images       : [],
     name         : '',
@@ -27,28 +27,24 @@ export const data = {
     inputPrice   : 0,
     moneyOutputId: 0,
     outputPrice  : 0,
-    propertiesJson : '',
-    properties     : {},
+    propertyJson : '',
+    property     : {},
   },
 
   fieldChange: {
     unitId       : true,
     moneyInputId : true,
-    moneyInput   : true,
     percent      : true,
     moneyOutputId: true,
-    moneyOutput  : true,
     activity     : true,
     sort         : true,
-    properties   : false,
+    property     : false,
   },
 
-  elementLoaded: 0,
-  elementName  : '',
+  elementLoaded  : 0,
   optionsSelected: [],
-  loadedFiles    : undefined,
-  filesUpSelected: [], // Выбранные файлы из загруженных.
-  filesUploaded: [],   // Загруженные файлы
+  filesUpSelected: [],
+  filesUploaded: [],
 
   optionsSelectedShow: false,
   elementParentModalDisabled: false,
@@ -58,48 +54,27 @@ export const data = {
     {name: 'Номер', value: 'id'},
     {name: 'Файлы', value: 'images'},
     {name: 'Ед.Измерения', value: 'unitName'},
-    {name: 'Активен', value: 'activity'},
-    {name: 'Сортировка', value: 'sort'},
-    {name: 'Валюта вход', value: 'moneyInputName'},
-    {name: 'Сумма вход', value: 'inputPrice'},
-    {name: 'Процент', value: 'outputPercent'},
-    {name: 'Валюта выход', value: 'moneyOutputName'},
-    {name: 'Сумма выход', value: 'outputPrice'},
+    {name: 'activity', value: 'activity'},
+    {name: 'sort', value: 'Сортировка'},
+    {name: 'moneyInputName', value: 'moneyInputName'},
+    {name: 'inputPrice', value: 'inputPrice'},
+    {name: 'outputPercent', value: 'outputPercent'},
+    {name: 'moneyOutputName', value: 'moneyOutputName'},
+    {name: 'outputPrice', value: 'outputPrice'},
   ],
 
   optionsColumnsSelected: undefined,
-  files: new Map(),
+  files: {},
+
 }
 
 export const watch = {
-  option: {
-    deep: true,
-    handler() {
-      this.optionsModal.confirmDisabled = !this.option.name;
-    },
-  },
-
-  'option.moneyInputId'() {
-    // инпут кросс курс умножить на проценты изменить отп цену.
-  },
-  'option.inputPrice'() {
-    this.option.outputPrice = this.option.inputPrice * getPercent(this.option.percent);
-  },
-  'option.moneyOutputId'() {
-    // инпут кросс курс умножить на проценты изменить отп цену.
-  },
-
-  files: {
-    deep: true,
-    handler() { this.optionsModal.confirmDisabled = !this.option.name },
+  'option.name'() {
+    this.optionsModal.confirmDisabled = !this.option.name;
   },
 }
 
 export const computed = {
-  optionsCount() {
-    return this.options.length;
-  },
-
   optionsColumnsValues() {
     return this.optionsColumnsSelected.map(v => v.value);
   },
@@ -107,95 +82,45 @@ export const computed = {
   getOptionSelectedId() {
     return this.optionsSelected.map(i => i.id);
   },
-
-  /**
-   * true if can remove options
-   */
-  checkRemoveOptions() {
-    return this.optionsCount > 1 && this.optionsCount > Object.keys(this.optionsSelected).length;
-  },
-
-  filesList() {
-    return [...this.files.entries()];
-  },
 }
 
-const getPercent = p => 1 + (p / 100);
-const reload = (that, checkSimple = false) => ({
+const reload = that => ({
   dbAction : 'openElement',
   callback: (fData, aData) => {
     that.options         = aData['options']
     that.optionsLoading  = false;
     that.optionsSelected = [];
-    that.files           = new Map();
-
-    if (checkSimple) {
-      const el = that.elements.find(el => +el.id === +that.elementLoaded);
-      el.simple = that.options.length === 1;
-    }
+    that.files           = Object.create(null);
   }
 });
 
 export const methods = {
   loadOptions(id) {
-    this.queryParam.dbAction   = 'openElement';
-    this.queryParam.elementsId = JSON.stringify([id]);
-    this.elementLoaded         = id;
-    this.elementName           = this.elements.find(e => +e.id === id).name;
-    this.optionsLoading        = true;
-
+    this.queryParam.dbAction = 'openElement';
+    this.queryParam.elementsId = id;
+    this.elementLoaded = id;
+    this.optionsLoading = true;
     this.query().then(data => {
       this.options        = data['options'];
       this.optionsLoading = false;
-      this.clearAllOptions();
-      this.$nextTick(() => {
-        window.scrollTo(0, this.$refs['optionsWrap'].getBoundingClientRect().y);
-      });
-      f.showMsg('Открыт: ' + this.elementName);
-    });
-  },
-
-  checkColumn(v) {
-    return this.optionsColumnsValues.includes(v);
-  },
-  checkSelectedAndLoadedElements() {
-    // Если false, значит все хорошо.
-    switch (this.getElementsSelectedId.length) {
-      case 0: return false;
-      case 1: return +this.getElementsSelectedId[0] !== this.elementLoaded;
-      default: return true;
-    }
-  },
-
-  getAvgPrice(type) {
-    let res = 0;
-
-    this.optionsSelected.forEach(option => {
-      res += +option[type + 'Price'];
-    });
-
-    return res / this.optionsSelected.length;
+    })
   },
 
   enableOptionField() {
     this.fieldChange = {
       unitId       : true,
       moneyInputId : true,
-      moneyInput   : true,
       percent      : true,
       moneyOutputId: true,
-      moneyOutput  : true,
       activity     : true,
       sort         : true,
-      properties   : false,
+      property     : false,
     };
   },
 
   setOptionModal(title, confirmDisabled, single) {
-    this.$nextTick(() => {
-      single && this.enableOptionField();
-      this.optionsModal = {display: true, confirmDisabled, title, single};
-    });
+    single && this.enableOptionField();
+    this.optionsModal = {display: true, confirmDisabled, title, single};
   },
   clearFiles(node) {
     const input = document.createElement('input');
@@ -205,23 +130,24 @@ export const methods = {
   setImages(option) {
     this.option.images = option.images.map(f => f.id).join(',');
     option.images.forEach(f => {
-      this.queryFiles[f.id] = f.id;
-      this.files.set(f.id, f);
+      this.files['F_' + f.id] = f;
+      this.queryFiles['F_' + f.id] = f.id;
     });
   },
   setDefaultProperty() {
-    Object.keys(this.properties).map(key => this.option.properties[key] = undefined);
+    Object.keys(this.properties).map(key => this.option.property[key] = undefined);
   },
   setOptionProperty(el) {
     this.setDefaultProperty();
-    Object.entries(el.properties).map(([key, value]) => {
-      if (this.properties[key].type === 'number') value = f.toNumber(value);
-      this.option.properties[key] = value;
-    });
+    Object.entries(el.property).map(([key, value]) => this.option.property[key] = value);
   },
 
   // Events function
   //--------------------------------------------------------------------------------------------------------------------
+  checkColumn(v) {
+    return this.optionsColumnsValues.includes(v);
+  },
+
   selectedAllOptions() {
     this.optionsSelected = Object.values(this.options);
   },
@@ -233,62 +159,42 @@ export const methods = {
     this.optionsSelectedShow = !!this.optionsSelected.length;
   },
 
-  setFieldChange(check) {
-    Object.keys(this.fieldChange).forEach(k => this.fieldChange[k] = check);
-  },
-
   createOption() {
     this.queryParam.dbAction = 'createOption';
 
     this.option.name = '';
     this.option.unitId = this.units[0].id;
-
     this.option.moneyInputId  = this.money[0].id;
     this.option.moneyOutputId = this.money[0].id;
-
     this.option.sort = 100;
     this.setDefaultProperty();
 
     this.setOptionModal('Создать', true, true);
-    this.reloadAction = reload(this, true);
+    this.reloadAction = reload(this);
   },
   changeOptions() {
-    if (this.optionsCount === 1) this.optionsSelected = [this.options[0]];
-    if (!this.optionsSelected.length) { f.showMsg('Ничего не выбрано'); return; }
-    if (this.checkSelectedAndLoadedElements()) setTimeout(() => this.optionsModal.displayContinue = true, 100);
-
+    if (!this.optionsSelected.length) { return; }
     const el = this.optionsSelected[0],
           single = this.optionsSelected.length === 1;
 
     this.queryParam.optionsId = JSON.stringify(this.getOptionSelectedId);
     this.queryParam.dbAction = 'changeOptions';
 
-    if (single) {
-      this.option.name = el.name || '';
-      this.filesUpSelected = [];
-      this.setImages(el);
-    }
+    this.option.name      = single ? el.name : '';
     this.option.elementId = this.elementLoaded;
     this.option.unitId    = single ? el.unitId : this.units[0].id;
-
     this.option.moneyInputId  = single ? el.moneyInputId : this.money[0].id;
-    this.option.inputPrice    = single ? +el.inputPrice || 0 : this.getAvgPrice('input');
-
     this.option.moneyOutputId = single ? el.moneyOutputId : this.money[0].id;
-    this.option.outputPrice  = single ? +el.outputPrice || 0 : this.getAvgPrice('output');
-
-    this.option.percent  = +el['outputPercent'] || 0;
-    this.option.activity = single ? !!+el.activity : true;
+    this.option.activity = single ? !!el.activity : true;
     this.option.sort     = this.getAvgSort(this.optionsSelected);
+    single && this.setImages(el);
     single ? this.setOptionProperty(el) : this.setDefaultProperty();
 
-    this.setOptionModal('Редактировать', single, single);
+    this.setOptionModal('Редактировать', false, single);
     this.reloadAction = reload(this);
   },
   copyOption() {
-    if (this.optionsCount === 1) this.optionsSelected = [this.options[0]];
-    if (this.optionsSelected.length !== 1) { f.showMsg('Выберите только 1 вариант', 'error'); return; }
-
+    if (this.optionsSelected.length !== 1) { return; }
     const el = this.optionsSelected[0];
 
     this.queryParam.optionsId = JSON.stringify(this.getOptionSelectedId);
@@ -305,111 +211,62 @@ export const methods = {
     this.setOptionProperty(el);
 
     this.setOptionModal('Редактировать', false, true);
-    this.reloadAction = reload(this, true);
+    this.reloadAction = reload(this);
   },
   deleteOptions() {
-    if (!this.optionsSelected.length) { f.showMsg('Ничего не выбрано', 'error'); return; }
+    if (!this.optionsSelected.length) { return; }
 
     this.queryParam.optionsId = JSON.stringify(this.getOptionSelectedId);
     this.queryParam.dbAction   = 'deleteOptions';
 
     this.setOptionModal('Удалить', false, false);
-    this.reloadAction = reload(this, true);
-  },
-
-  dblClickOptions(e) {
-    const node = e.target.closest('tr').querySelector('[data-id]'),
-          id = node && +node.dataset.id;
-
-    if (id) {
-      this.optionsSelected = [this.options.find(e => +e.id === id)];
-      this.changeOptions();
-    }
-  },
-  changePercent() {
-    this.$nextTick(() => {
-      this.option.outputPrice = this.option.inputPrice * getPercent(this.option.percent);
-    });
-  },
-  changeOutputPrice() {
-    this.$nextTick(() => {
-      this.option.percent = (this.option.outputPrice / this.option.inputPrice - 1) * 100;
-    });
+    this.reloadAction = reload(this);
   },
 
   addFile(e) {
     Object.values(e.target.files).forEach(file => {
-      let id    = f.random().toString(),
+      let id    = Math.random() * 10000 | 0,
           error = false;
 
-      file.fileError = file.size > 1024 * 1024;
+      file.fileError = file.size > 1024*1024;
       if (file.fileError && !error) error = true;
 
-      this.queryFiles[id] && (id += '1');
+      this.queryFiles.id && (id += '1');
       this.queryFiles[id] = file;
-      this.files.set(id, {
+      this.files[id] = {
         name: file.name,
         src: URL.createObjectURL(file),
         error,
-        optimize: true,
-      });
+      };
     });
     this.clearFiles(e.target);
   },
-  removeFile(id) {
+  removeFile(e) {
+    const id = e.target.closest('[data-id]').dataset.id;
     delete this.queryFiles[id];
-    this.files.delete(id);
+    delete this.files[id];
   },
   chooseUploadedFiles() {
+    this.queryParam.dbAction = 'loadFiles';
     this.optionsModal.chooseFileDisplay = true;
-    if (this.loadedFiles) return;
-
-    let data = new FormData();
-    data.set('mode', 'DB');
-    data.set('dbAction', 'loadFiles');
-
     this.filesLoading = true;
 
-    f.Post({data}).then(data => {
+    this.reloadAction = false;
+    this.query().then(data => {
       this.loadedFiles = data['files'];
       this.filesLoading = false;
     });
   },
-  closeChooseImage() {
-    Object.keys(this.filesUpSelected).forEach(id => {
-      const f = this.loadedFiles.find(i => +i.id === +id);
-      this.queryFiles[f.id] = f.id;
-      this.files.set(f.id, f);
-    });
-
-    this.optionsModal.chooseFileDisplay = false;
-  },
-  refreshUploadedFiles() {
-    this.loadedFiles = undefined;
-    this.chooseUploadedFiles();
-  },
 
   optionsConfirm() {
-    this.optionsLoading = true;
-    this.queryParam = {
-      ...this.queryParam,
-      option: JSON.stringify(this.option),
-      fieldChange: JSON.stringify(this.fieldChange),
-    };
+    //this.optionsLoading = true;
+    this.option.propertyJson = JSON.stringify(this.option.property);
+    this.queryParam = Object.assign(this.queryParam, this.option, {fieldChange: JSON.stringify(this.fieldChange)});
     this.query();
-    this.optionsClose();
-  },
-  optionsClose() {
-    this.queryFiles = Object.create(null);
-    this.files = new Map();
     this.optionsModal.display = false;
   },
-
-  optionsContinueConfirm() {
-    this.optionsModal.displayContinue = false;
-  },
-  optionsContinueCancel() {
-    this.optionsModal.displayContinue = false;
-    setTimeout(() => this.optionsModal.display = false, 100);
+  optionsCancel() {
+    this.files = Object.create(null);
+    this.optionsModal.display = false;
   },
 }

@@ -1,0 +1,15 @@
+.closeSection + .subSection {
+  display: none!important;
+}
+
+.openSection + .subSection {
+  display: block!important;
+}
+
+.focused {
+  border: 1px solid blue;
+}
+
+.subSection {
+  user-select: none;
+}

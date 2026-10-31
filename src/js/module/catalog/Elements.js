@@ -6,7 +6,6 @@ export const data = {
     confirmDisabled: true,
     title          : '',
     single         : true,
-    loading        : false,
   },
 
   elements: [],
@@ -19,7 +18,6 @@ export const data = {
     name    : '',
     activity: true,
     sort    : 100,
-    simple  : false,
   },
 
   fieldChange: {
@@ -41,11 +39,8 @@ export const watch = {
     this.elementParentModalSelected = {[this.element.parentId]: true};
   },
 
-  element: {
-    deep: true,
-    handler() {
-      this.elementsModal.confirmDisabled = !this.element.name;
-    },
+  'element.name'() {
+    this.elementsModal.confirmDisabled = !this.element.name;
   },
 }
 
@@ -55,25 +50,23 @@ export const computed = {
   },
 
   getSectionId() {
-    return this.getSectionSelectedId() || this.sectionTreeModal[0].key;
+    return this.sectionLoaded || this.sectionTreeModal[0].key;
   },
 
   getElementsSelectedId() {
     return this.elementsSelected.map(i => i.id);
-  },
+  }
 }
 
 const prepareData = data => data.map(el => {
-  el.activity = f.toNumber(el.activity);
-  el.simple = f.toNumber(el.simple);
+  el['activity'] = f.toNumber(el['activity']);
   return el;
 });
 
 const reload = that => ({
   dbAction : 'openSection',
   callback: (fData, aData) => {
-    if (aData['elements']) that.elements = prepareData(aData['elements']);
-
+    that.elements         = prepareData(aData['elements']);
     that.elementsLoading  = false;
     that.elementsSelected = [];
   }
@@ -87,28 +80,11 @@ export const methods = {
     this.query().then(data => {
       this.elements        = prepareData(data['elements']);
       this.elementsLoading = false;
-      this.clearAll();
-    });
-  },
-  loadSimpleOptions() {
-    const crAction = this.queryParam.dbAction;
-
-    this.queryParam.dbAction   = 'openElement';
-    this.elementsModal.loading = true;
-
-    return this.query().then(data => {
-      this.options = data['options'];
-      this.elementsModal.loading = false;
-      this.queryParam.dbAction = crAction;
-      this.reloadAction = reload(this);
     });
   },
 
   checkLoadedElement() {
-    if (this.getElementsSelectedId.includes(this.elementLoaded.toString())) {
-      this.options         = [];
-      this.optionsSelected = [];
-    }
+    //if (this.elementsSelected.includes(this.elementLoaded)) this.options = [];
   },
 
   enableField() {
@@ -141,10 +117,8 @@ export const methods = {
   },
 
   setElementModal(title, confirmDisabled, single) {
-    this.$nextTick(() => {
-      single && this.enableField();
-      this.elementsModal = {display: true, confirmDisabled, title, single};
-    });
+    single && this.enableField();
+    this.elementsModal = {display: true, confirmDisabled, title, single};
   },
 
   // Events function
@@ -181,7 +155,7 @@ export const methods = {
     this.reloadAction = reload(this);
   },
   changeElements() {
-    if (!this.elementsSelected.length) { f.showMsg('Ничего не выбрано', 'error'); return; }
+    if (!this.elementsSelected.length) { return; }
     const el     = this.elementsSelected[0],
           single = this.elementsSelected.length === 1;
 
@@ -193,36 +167,12 @@ export const methods = {
     this.element.parentId = this.getSectionId;
     this.element.activity = single ? !!el.activity : true;
     this.element.sort     = single ? f.toNumber(el.sort) : this.getAvgSort(this.elementsSelected);
-    this.element.simple   = single && el.simple && el.id; // TODO
 
-    this.setElementModal('Редактировать элемент', single, single);
+    this.setElementModal('Редактировать элемент', false, single);
     this.reloadAction = reload(this);
-
-    if (this.element.simple) this.loadSimpleOptions();
-  },
-  changeSimpleElements() {
-    this.elementLoaded = this.element.simple;
-    this.optionsSelected = [this.options[0]];
-    this.changeOptions();
-  },
-  changeQuickSimpleElement(id) {
-    this.queryParam.elementsId = JSON.stringify([id]);
-    this.elementsSelected = [this.elements.find(el => el.id === id)];
-    this.options = [];
-
-    const interval = setInterval(() => {
-      if (this.options.length) {
-        clearInterval(interval);
-
-        this.optionsSelected = [this.options[0]];
-        this.changeOptions();
-      }
-    }, 100);
-
-    this.loadSimpleOptions();
   },
   copyElement() {
-    if (this.elementsSelected.length !== 1) { f.showMsg('Выберите только один элемент', 'error'); return; }
+    if (this.elementsSelected.length !== 1) { return; }
     const el = this.elementsSelected[0];
 
     this.queryParam.dbAction = 'copyElement';
@@ -237,7 +187,7 @@ export const methods = {
     this.reloadAction = reload(this);
   },
   deleteElements() {
-    if (!this.elementsSelected.length) { f.showMsg('Ничего не выбрано', 'error'); return; }
+    if (!this.elementsSelected.length) return;
 
     this.queryParam.elementsId = JSON.stringify(this.getElementsSelectedId);
     this.queryParam.dbAction   = 'deleteElements';
@@ -249,20 +199,15 @@ export const methods = {
         this.checkLoadedElement();
 
         this.elements         = prepareData(aData['elements']);
-        this.elementLoaded    = 0;
         this.elementsLoading  = false;
         this.elementsSelected = [];
-      },
+      }
     };
   },
 
   elementConfirm() {
     //this.elementsLoading = true;
-    this.queryParam = {
-      ...this.queryParam,
-      element: JSON.stringify(this.element),
-      fieldChange: JSON.stringify(this.fieldChange)
-    };
+    this.queryParam = Object.assign(this.queryParam, this.element, {fieldChange: JSON.stringify(this.fieldChange)});
     this.query();
     this.elementsModal.display = false;
   },

@@ -1,6 +1,6 @@
 'use strict';
 
-const users = {
+export const users = {
   form: new FormData(),
 
   needReload: false,
@@ -43,7 +43,7 @@ const users = {
       dbAction : 'loadUsers',
       sortParam: this.queryParam,
     });
-    this.M = new f.initModal();
+    this.M = f.initModal();
     this.query();
 
     this.onEvent();
@@ -51,16 +51,14 @@ const users = {
 
   setUsers(data) {
     this.usersList = new Map();
-    data.forEach(i => this.usersList.set(i['ID'], i));
+    data.forEach(i => this.usersList.set(i['U.ID'], i));
   },
   fillTable(data) {
-    debugger
     this.contValue || (this.contValue = f.gT('#tableContactsValue'));
     data = data.map(item => {
-      item['permissionName'] = _(item['permissionName']);
-
+      item['P.name'] && (item['P.name'] = _(item['P.name']));
       if (item.activity) {
-        item.activityValue = !!+item.activity;
+        item.activityValue = !!item.activity;
         item.activity = item.activityValue ? '+' : '-';
       }
 
@@ -77,7 +75,7 @@ const users = {
             value = f.replaceTemplate(this.contValue, arr);
           } else value = '';
         }
-        catch (e) { console.log(`Заказ ID: ${item['ID']} имеет не правильное значение`); }
+        catch (e) { console.log(`Заказ ID:${item['U.ID']} имеет не правильное значение`); }
         item['contacts'] = value;
       }
 
@@ -113,7 +111,7 @@ const users = {
 
   query() {
     Object.entries(this.queryParam).map(param => {
-      this.form.set(param[0], param[1].toString());
+      this.form.set(param[0], param[1]);
     })
 
     f.Post({data: this.form}).then(data => {
@@ -140,8 +138,6 @@ const users = {
 
   // кнопки открыть закрыть и т.д.
   actionBtn(e) {
-    e.stopImmediatePropagation();
-
     let target = e.target,
         action = target.getAttribute('data-action'),
         form;
@@ -160,11 +156,9 @@ const users = {
       'addUser': () => {
         form = this.tmp.form.cloneNode(true);
         form.querySelector('#changeField').remove();
-
-        new f.Valid({form});
-
         this.confirmMsg = 'Новый пользователь добавлен';
         this.M.show('Добавление пользователя', form);
+        f.maskInit(form.querySelector('[name="phone"]'));
       },
       'changeUser': () => {
         if (!this.id.getSelectedSize()) { f.showMsg('Выберите минимум 1 пользователя', 'error'); return; }
@@ -177,7 +171,7 @@ const users = {
         this.queryParam.usersId = JSON.stringify(id);
 
         node = form.querySelector('[name="name"]');
-        if (oneElements) node.value = users['name'];
+        if (oneElements) node.value = users['U.name'];
         else node.parentNode.remove();
 
         node = form.querySelector('[name="permissionId"]');
@@ -191,12 +185,12 @@ const users = {
         form.querySelector('[name="password"]').parentNode.remove();
 
         // Contacts
-        users['contactsParse'] && Object.entries(users['contactsParse']).forEach(([k, v]) => {
+        Object.entries(users['contactsParse']).forEach(([k, v]) => {
           node = form.querySelector(`[name="${k}"]`);
           if (node) {
             if (oneElements) {
               node.value = v;
-              node.type === 'tel' && f.initMask(node);
+              node.type === 'tel' && f.maskInit(node);
             } else node.parentNode.remove();
           }
         });
@@ -213,8 +207,6 @@ const users = {
 
         node = form.querySelector('[name="activity"]');
         node.checked = oneElements ? users.activityValue : true;
-
-        new f.Valid({form});
 
         this.confirmMsg = 'Изменения сохранены';
         this.M.show('Изменение пользователей', form);
@@ -234,10 +226,8 @@ const users = {
         this.onEventNode(newPass, e => this.changeTextInput(e, repeatPass), {}, 'change');
         this.onEventNode(repeatPass, e => this.changePassword(e, newPass), {}, 'change');
 
-        new f.Valid({form});
-
         this.confirmMsg = 'Новый пароль сохранен';
-        this.M.show('Изменить пароль пользователя ' + user['name'], form);
+        this.M.show('Изменить пароль пользователя ' + user['U.name'], form);
       },
       'delUser': () => {
         if (!this.id.getSelectedSize()) return;
@@ -247,8 +237,6 @@ const users = {
 
         this.confirmMsg = 'Удаление успешно';
         this.M.show('Удалить', 'Удалить выбранных пользователя?');
-        this.M.btnConfirm.classList.remove('cl-confirm-disabled');
-        this.M.btnConfirm.removeAttribute('disabled');
       },
     }
 
@@ -288,13 +276,11 @@ const users = {
    * @param eventType
    */
   onEventNode(node, func, options = {}, eventType = 'click') {
-    node.addEventListener(eventType, e => func.call(this, e), options);
+    node.addEventListener(eventType, (e) => func.call(this, e), options);
   },
 
   onEvent() {
     // Action buttons
-    f.qA('input[data-action]', 'click', e => this.actionBtn.call(this, e));
+    f.qA('input[data-action]', 'click', (() => (e) => this.actionBtn.call(this, e))());
   },
 }
-
-window.UsersInstance = users.init();

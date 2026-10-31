@@ -1,0 +1,199 @@
+/* Your rules here */
+body {
+  background: $bg-color;
+}
+
+.font-blue {
+  color: $color-blue;
+}
+
+.bg-blue {
+  background: $color-blue;
+  color:      white !important;
+}
+
+.exit-icon {
+  cursor: pointer;
+}
+
+.btn-calendar {
+  border-radius: 50px !important;
+  background:    #309DFF !important;
+  margin-right:  .3rem !important;
+  border:        none !important;
+}
+
+.select-status {
+  width: 15% !important;
+}
+
+.btn-arrow {
+  color:  $color-blue;
+  border: none !important;
+
+  &:active,
+  &:focus {
+    border: none !important;
+  }
+}
+
+.input-paginator {
+  border: 1px solid $color-blue;
+  color: $color-blue;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.res-table {
+  overflow-x: scroll;
+  height:     auto;
+
+  &::-webkit-scrollbar {
+    opacity: 0;
+  }
+}
+
+.p-15 {
+  padding: 15px !important;
+}
+
+.pt-20 {
+  padding-top: 20px;
+}
+
+.table-th {
+  box-shadow: none !important;
+
+  &:hover {
+    box-shadow: none !important;
+  }
+}
+
+.table-form {
+  width:           100%;
+  border-collapse: collapse;
+  padding:         0;
+}
+
+.table-form th {
+  padding:     5px;
+  font-weight: bold;
+  text-align:  center;
+}
+
+.table-form td {
+  padding: 5px;
+}
+
+.cl_input-number__btn {
+  line-height: 40px;
+}
+
+/*toaster*/
+.notification-container {
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  line-height: 1rem;
+  position: fixed;
+  width: 100%;
+  z-index: 999;
+  text-align: center;
+  background: #dfa2a2;
+  border-radius: 4px;
+  color: white;
+  padding: 15px 0;
+  box-shadow: 1px 2px 12px 1px rgba(117, 117, 117, 0.62);
+  transition: opacity 1s ease 0.5s;
+  user-select: none;
+  cursor: pointer;
+}
+
+.success {
+  background: #bbd6bb;
+}
+
+.warning {
+  background: #f3ba64;
+}
+
+.error {
+  background: #dfa2a2;
+}
+
+
+@media only screen and (max-width: 468px) {
+  .select-status {
+    width: 100% !important;
+  }
+}
+
+/*Добавить все таблицы*/
+#orderTable tr,
+#customersTable tr,
+#usersTable tr {
+  cursor: pointer;
+}
+
+.fc .fc-daygrid-event-harness {
+  cursor: pointer;
+}
+
+.cl-input-error,
+.cl-input-valid {
+  padding-right: calc(1.5em + .75rem);
+  background-repeat: no-repeat;
+  background-position: right calc(.375em + .1875rem) center;
+  background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+}
+
+.cl-input-error {
+  border: 1px solid #dc3545!important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23dc3545' viewBox='0 0 12 12'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+}
+
+.cl-input-valid {
+  border-radius: 4px;
+  border-color: #198754!important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+}
+
+.sidebar .logo {
+  padding: 4px 0!important;
+}
+
+.sidebar .nav li.active > a, .sidebar .nav li.active > a i {
+  color: #fff;
+  background: linear-gradient(180deg, #309DFF 0%, rgba(52, 152, 223) 10%);
+}
+
+
+.bg-style-sheet {
+  background-color: Snow;
+  box-shadow: 1px 1px 5px silver;
+  padding: 15px;
+}
+
+#footerBtn.controlWrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 8px;
+}
+
+.closeSection {
+  padding: 3px;
+}
+
+.list li {
+  border-bottom: 0.1px solid silver;
+}
+
+.list li:nth-child(2n) {
+  background-color: MintCream;
+}

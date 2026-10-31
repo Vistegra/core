@@ -1,52 +1,52 @@
-<?php if (!defined('MAIN_ACCESS')) die('access denied!');
-
-/**
- * @var Main $main - global
- */
+<?php
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-global $main;
+if (!defined('MAIN_ACCESS')) die('access denied!');
 
 // General setting
 !defined('MAIL_TARGET') && define('MAIL_TARGET', 'trydim@mail.ru');
 !defined('MAIL_SUBJECT_DEFAULT') && define('MAIL_SUBJECT_DEFAULT', 'Заявка с сайта ' . $_SERVER['SERVER_NAME']);
 !defined('ABS_SITE_PATH') && define('ABS_SITE_PATH', $_SERVER['DOCUMENT_ROOT']);
+!defined('CORE') && define('CORE', '/');
+!defined('SETTINGS_PATH') && define('SETTINGS_PATH', '');
 
 // MailSetting
-define('MAIL_TARGET_DEBUG', $main->getCmsParam('MAIL_TARGET_DEBUG') ?? 'trydim@mail.ru');
-define('MAIL_SMTP', $main->getCmsParam('MAIL_SMTP') ?? true);
+const MAIL_TARGET_DEBUG = 'trydim@mail.ru';
+const MAIL_SMTP = true;
 
-define('MAIL_PORT', $main->getCmsParam('MAIL_PORT') ?? 465);
-
-define('MAIL_HOST', $main->getCmsParam('MAIL_HOST') ?? 'smtp.yandex.ru');
-define('MAIL_FROM', $main->getCmsParam('MAIL_FROM') ?? 'noreplycalcby@yandex.ru');
-define('MAIL_PASSWORD', $main->getCmsParam('MAIL_PASSWORD') ?? '638ch1');
-
-
+const MAIL_PORT = 465;
+const MAIL_HOST = 'smtp.yandex.ru';
+const MAIL_FROM = 'noreplycalcby@yandex.ru';
+const MAIL_PASSWORD = '638ch1';
 /*
-define('MAIL_HOST', $main->getCmsParam('MAIL_HOST') ?? 'smtp.mail.ru');
-define('MAIL_FROM', $main->getCmsParam('MAIL_FROM') ?? 'mail.common@list.ru');
-define('MAIL_PASSWORD', $main->getCmsParam('MAIL_PASSWORD') ?? 'RAE^ysPypo22');
+const MAIL_HOST = 'smtp.mail.ru';
+const MAIL_FROM = 'mail.common@list.ru';
+const MAIL_PASSWORD = 'RAE^ysPypo22';
+/*
+const MAIL_FROM = 'commonserver@yandex.ru';
+const MAIL_PASSWORD = 'xmbxqxulvhwcqyta';
 */
 
-/*
-define('MAIL_FROM', $main->getCmsParam('MAIL_FROM') ?? 'commonserver@yandex.ru');
-define('MAIL_PASSWORD', $main->getCmsParam('MAIL_PASSWORD') ?? 'xmbxqxulvhwcqyta');
-*/
+require_once CORE . 'libs/vendor/autoload.php';
 
 class Mail {
-  /**
-   * @var Main
-   */
-  private $main;
-
   private $mailTpl, $body = '', $docPath = '', $pdfFileName = '';
   private $mailTarget;
   private $subject, $fromName;
   private $otherMail       = [];
   private $attachmentFiles = [];
+
+
+  /**
+   *
+   * @return array
+   */
+  private function LoadSettingFile(): array {
+    $content = file_get_contents(SETTINGS_PATH);
+    return !empty($content) && is_string($content) ? json_decode($content): [];
+  }
 
   /**
    * @param string $fileName
@@ -59,17 +59,17 @@ class Mail {
   /**
    * @param string $mailTpl
    */
-  public function __construct(Main $main, string $mailTpl) {
-    $this->main = $main;
+  public function __construct(string $mailTpl) {
     $this->mailTpl = $mailTpl;
 
-    if (!DEBUG) {
-      $setting = $main->getSettings();
-      $this->mailTarget = $setting['mailTarget'];
-      strlen($setting['mailTargetCopy'] ?? '') && $this->otherMail[] = $setting['mailTargetCopy'];
-      strlen($setting['mailFromName'] ?? '') && $this->fromName = $setting['mailFromName'];
+    if (!DEBUG && file_exists(SETTINGS_PATH)) {
+      $setting = function_exists('getSettingFile') ? getSettingFile() : $this->LoadSettingFile();
+      $this->mailTarget = $setting['orderMail'];
+      isset($setting['orderMailCopy']) && strlen($setting['orderMailCopy']) && $this->otherMail[] = $setting['orderMailCopy'];
+      isset($setting['mailFromName']) && strlen($setting['mailFromName']) && $this->otherMail[] = $setting['orderMailCopy'];
 
-      $this->setSubject($setting['mailSubject'] ?? MAIL_SUBJECT_DEFAULT);
+      if (isset($setting['mailSubject'])) $this->subject = $setting['mailSubject'];
+      else $this->subject = MAIL_SUBJECT_DEFAULT;
     }
   }
 
@@ -81,7 +81,7 @@ class Mail {
     ob_start();
 
     // Шаблон в public
-    if (file_exists(ABS_SITE_PATH . "public/views/docs/$this->mailTpl.php"))
+    if (file_exists(ABS_SITE_PATH . 'public/views/docs/' . $this->mailTpl . '.php'))
       include ABS_SITE_PATH . "public/views/docs/$this->mailTpl.php";
     else if (file_exists($this->mailTpl)) include $this->mailTpl;
     else {
@@ -96,14 +96,14 @@ class Mail {
    * @param string $str
    */
   public function setSubject(string $str): void {
-    !empty($str) && $this->subject = $str;
+    $this->subject = $str;
   }
 
   /**
-   * @param array $emails
+   * @param string $email
    */
-  public function addMail(array $emails): void {
-    if (!empty($emails)) $this->otherMail = array_merge($this->otherMail, $emails);
+  public function addMail(string $email): void {
+    $this->otherMail[] = $email;
   }
 
   /**
@@ -130,9 +130,8 @@ class Mail {
   }
 
   public function send() {
-    require_once CORE . 'libs/vendor/autoload.php';
     $mail = new PHPMailer();
-    $mail->SMTPDebug = DEBUG;                    // Enable verbose debug output
+    $mail->SMTPDebug = DEBUG !== false;          // Enable verbose debug output
     $mail->CharSet = "UTF-8";
 
     try {
@@ -149,8 +148,8 @@ class Mail {
       // Получатель письма
       if (DEBUG) {
         $this->mailTarget = MAIL_TARGET_DEBUG;
-        $this->subject  = 'Тестовое письмо ' . $_SERVER['SERVER_NAME'];
-        $this->fromName = 'vistegra.by';
+        $this->subject    = 'Тестовое письмо ' . $_SERVER['SERVER_NAME'];
+        $this->fromName   = 'vistegra.by';
       }
 
       $mail->addBCC($this->mailTarget ?? MAIL_TARGET_DEBUG);
@@ -158,6 +157,7 @@ class Mail {
       $mail->FromName = $this->fromName;
 
       foreach ($this->otherMail as $moreMail) {
+        if ($moreMail === $this->otherMail) continue;
         $mail->addBCC($moreMail);
       }
 

@@ -1,9 +1,7 @@
-<?php return [
+<?php $mess = [
   'paramConfig' => 'Конфигурация',
   'pipeConfig'  => 'Конфигурация Трубы',
   'price'       => 'Прайс',
 
   'printType1' => 'Печать',
-
-  'Content editor' => 'Редактор контента',
 ];

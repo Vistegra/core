@@ -1,7 +1,7 @@
 'use strict';
 
-import '../../../css/module/calendar/calendar.scss';
-import './fullCalendar.min.js';
+import '../../../css/module/calendar/calendar.css';
+import {FullCalendar} from './fullCalendar.js';
 
 /*const importLocale = async (locale) => {
   try {
@@ -15,16 +15,6 @@ import './fullCalendar.min.js';
 }*/
 
 const component = {
-  filterTemplate: `
-    <div class="fc-button-group select">
-      <select class="select__item fc-today-button fc-button" id="orderFilter">
-        <option value="all">Все заказы</option>
-        <option value="create">По созданию</option>
-        <option value="shipping">По отгрузке</option>
-      </select>
-    </div>
-  `,
-  filter: 'all',
   default: {
     height: window.innerHeight * 0.9,
     initialView  : 'dayGridMonth', // Вид по умолчанию dayGridMonth timeGridWeek timeGridDay
@@ -60,6 +50,9 @@ const component = {
       //second: false, //'2-digit',
       meridiem: false
     },*/
+
+    // И как это связать с настройками добавить цвета
+    eventClassNames: (arg) => orders.status.call(orders, arg),
 
     buttonText: {
       today: "Сегодня",
@@ -104,10 +97,11 @@ const component = {
       },
       eventContent: (arg) => {
         const order = arg.event.extendedProps.order,
-              line = str => `<div>${str}</div>`;
+              line = str => `<div style="padding: 0 4px">${str}</div>`;
 
-        const lines = [
-          `№${order['ID']} - ${order['customerName']}`,
+        const lines =
+        [
+          `№${order['O.ID']} - ${order['C.name']}`,
           `${Math.round(order.total).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} руб / ${order['S.name']}`
         ];
         const html = lines.reduce((acc, el) => acc + line(el), '');
@@ -120,8 +114,6 @@ const component = {
     //calendar.changeView('timeGridDay');
 
     this.calendar.render();
-    //потому что в fullcalendar селектов нет, только кнопки
-    f.qS('#calendar>div>div').insertAdjacentHTML('beforeend', component.filterTemplate);
     this.onEvent();
   },
 
@@ -138,12 +130,12 @@ const component = {
     if(order) {
       order.importantValue = orders.formatImportant(order.importantValue);
 
-      let title = 'Заказ №' + order['ID'],
+      let title = 'Заказ №' + order['O.ID'],
           div   = document.createElement('div'),
           content = orders.template.orderContentBody.outerHTML;
 
       div.innerHTML = f.replaceTemplate(content, order);
-      orders.template.orderContentBtn.dataset.id = order['ID'];
+      orders.template.orderContentBtn.dataset.id = order['O.ID'];
 
       calendar.M.show(title, div);
       calendar.M.btnField.append(orders.template.orderContentBtn);
@@ -151,7 +143,7 @@ const component = {
   },
 
   changeDateRange(e) {
-    let target = e.target, y, m, d, queryRange = {},
+    let target = e.target, y, m, d, queryRange = [],
         range = this.calendar.currentData.dateProfile.renderRange;
 
     if ((new Date()).getTime() < range.start.getTime()) return;
@@ -161,12 +153,12 @@ const component = {
     y = range.start.getFullYear();
     m = range.start.getMonth() + 1;
     d = range.start.getDate();
-    queryRange.dateEditedFrom = `${y}-${m}-${d} 00:00:01`;
+    queryRange.push(`${y}-${m}-${d} 00:00:01`);
 
     y = range.end.getFullYear();
     m = range.end.getMonth() + 1;
     d = range.end.getDate();
-    queryRange.dateEditedTo = `${y}-${m}-${d} 23:59:59`;
+    queryRange.push(`${y}-${m}-${d} 23:59:59`);
 
     this.form.set('dateRange', JSON.stringify(queryRange));
 
@@ -177,25 +169,11 @@ const component = {
     });
   },
 
-  changeFilter(context, event) {
-    //удалить все события
-    context.calendar.getEvents().forEach(e => {
-      e.remove();
-    })
-    //устанавливаем новое значение фильтра
-    context.filter = event.target.value;
-    //очищаем id уже как бы отрисованных
-    orders.orderIds.clear();
-    //рисуем новые события
-    orders.showOrders();
-  },
-
   // Event bind
   // -------------------------------------------------------------------------------------------------------------------
 
   onEvent() {
     f.qA('#calendar button', 'click', this.changeDateRange.bind(this));
-    f.qS('#orderFilter').addEventListener('change', (event) => this.changeFilter(this, event));
   }
 }
 
@@ -221,7 +199,7 @@ const orders = {
   },
 
   setOrders(orders) {
-    orders.map(i => this.data[i['ID']] = i);
+    orders.map(i => this.data[i['O.ID']] = i);
   },
 
   getOrder(id) {
@@ -229,7 +207,7 @@ const orders = {
   },
 
   setStatus(data) {
-    //console.log(data);
+    console.log(data);
     this.getStatusClass = function (status) {
       /*switch (arg.event._def.extendedProps.status) {
        case "fulfilled": return 'myClass1';
@@ -249,23 +227,7 @@ const orders = {
       if (this.orderIds.has(id)) return;
       this.orderIds.add(id);
 
-      const general = {id, order},
-            createOrder = {
-              color: '#0f9d58',
-              allDay: true,
-              start: order['createDate'],
-              end: order['lastEditDate'],
-            },
-            shippingOrder = {
-              color: '#a52834', //так же заменять цвет в стилях! .fc-daygrid-dot-event
-              allDay: false,
-              start: order['startShippingDate'],
-              end: order['endShippingDate']
-            };
-      //событие даты заказа
-      component.filter !== 'shipping' && component.addOrder(Object.assign(general, createOrder));
-      //событие даты отгрузки
-      component.filter !== 'create' && component.addOrder(Object.assign(general, shippingOrder));
+      component.addOrder({id: id, title: '', start: order['createDate'], order});
     });
   },
 
@@ -285,8 +247,8 @@ const orders = {
   },
 }
 
-const calendar = {
-  M: new f.initModal({showDefaultButton: false}),
+export const calendar = {
+  M: f.initModal({showDefaultButton: false}),
 
   init() {
     orders.init();
@@ -296,5 +258,3 @@ const calendar = {
     return this;
   }
 }
-
-window.CalendarInstance = calendar.init();

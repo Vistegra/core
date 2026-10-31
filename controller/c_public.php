@@ -1,32 +1,22 @@
-<?php if (!defined('MAIN_ACCESS')) die('access denied!');
+<?php if ( !defined('MAIN_ACCESS')) die('access denied!');
 
 /**
- * @var Main $main - global
+ * @var object $main
  */
 
-$authStatus = $main->checkStatus();
-$isDealer = $main->isDealer();
 $dbContent = "";
-$field = [
-  'pageTitle' => $main->getCmsParam('PROJECT_TITLE'),
-  'headContent' => '<meta name="Public"><meta name="description" content="Public">',
-  'cssLinks' => [],
-  'jsLinks'  => [],
-  'sideLeft' => $authStatus ? null : '',
-];
-$publicCss = $main->getCmsParam(VC::URI_CSS);
-$publicJs = $main->getCmsParam(VC::URI_JS);
+$field = ['pageTitle' => PROJECT_TITLE ?? 'Project title'];
 
-/** для совместимовсти */
-define('PATH_CSS' , $publicCss);
-define('PATH_JS' , $publicJs);
+require ABS_SITE_PATH . 'public/public.php';
+
+$authStatus = $main->checkStatus('ok');
 
 // Если загрузка
 if ($authStatus && isset($_GET['orderId'])) {
   $orderId = $_GET['orderId'];
 
   if (is_numeric($orderId)) {
-    $order = $main->db->loadOrdersById($orderId);
+    $order = $main->db->loadOrderById($orderId);
 
     if ($order) {
       $dbContent .= "<input type='hidden' id='dataOrder' value='" . json_encode($order) . "'>";
@@ -37,47 +27,22 @@ if ($authStatus && isset($_GET['orderId'])) {
       }
     }
   }
-
-  unset($orderId, $order, $customer);
 }
 
 if ($authStatus && isset($_GET['orderVisitorId'])) {
   $orderId = $_GET['orderVisitorId'];
 
-  if (is_finite($orderId)) {
+  if (is_numeric($orderId)) {
     $order = $main->db->selectQuery('client_orders', ['*'], "cp_number = '$orderId'");
 
     if (count($order) === 1) {
       $dbContent .= "<input type='hidden' id='dataVisitorOrder' value='" . json_encode($order[0]) . "'>";
     }
   }
-
-  unset($order, $orderId);
 }
 
-$main->publicMain();
-require ABS_SITE_PATH . 'public/public.php';
-if ($isDealer) {
-  $main->publicDealer();
-  $dealPublic = $main->url->getPath(true) . 'public/public.php';
+if (!$authStatus) $field['sideLeft'] = '';
 
-  if (file_exists($dealPublic)) {
-    $publicCss = $main->getCmsParam(VC::DEAL_URI_CSS);
-    $publicJs = $main->getCmsParam(VC::DEAL_URI_JS);
-    require $dealPublic;
-  }
-}
 
-$main->publicMain();
 require ABS_SITE_PATH . 'public/views/' . PUBLIC_PAGE . '.php';
-if ($isDealer) {
-  $main->publicDealer();
-  $dealPublic = $main->url->getPath(true) . 'public/views/' . PUBLIC_PAGE . '.php';
-  if (file_exists($dealPublic)) {
-    require $dealPublic;
-  }
-
-  unset($dealPublic, $dealCsvPath);
-}
-
-$main->response->setContent(template(OUTSIDE ? '_outside' : 'base', $field));
+$html = template(OUTSIDE ? 'outside' : 'base', $field);

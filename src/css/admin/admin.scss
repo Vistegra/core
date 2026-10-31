@@ -1,0 +1,24 @@
+@charset "UTF-8";
+@import "css/libs/material-dashboard.original";
+/* base - for all projects */
+@import "../base/found";
+
+/* */
+@import "variables";
+@import "custom";
+@import "modal";
+@import "loading";
+@import "form-register";
+
+/* dev style */
+@import "js-style";
+
+#columnValue {
+  input {
+    width: 100%;
+  }
+}
+
+.mouseSelected {
+  background: aliceblue !important;
+}

@@ -1,28 +1,334 @@
 <?php
 
-require __DIR__ . '/Traits/MainTraits.php';
+namespace cms;
+
+use Course;
+use RedBeanPHP;
+use Xml\Xml;
+
+/**
+ * @var $dbConfig
+ */
+
+/**
+ * Trait Authorization
+ * @package cms
+ */
+trait Authorization {
+
+  /**
+   * @var string[]
+   */
+  static $AVAILABLE_ACTION = ['loadCVS', 'saveVisitorOrder', 'openElement', 'loadOptions', 'loadProperties', 'loadProperty', 'loadFiles'];
+
+  private $id, $login, $name;
+
+  /**
+   * @var string
+   */
+  private $status = 'no';
+
+  /**
+   * @var array
+   */
+  private $sideMenu = [];
+
+  /**
+   * @var bool
+   */
+  private $admin = true;
+
+  /**
+   * @param $field
+   * @return mixed
+   */
+  public function getLogin(string $field = 'login') {
+    return $this->$field;
+  }
+
+  /**
+   * @param array $session
+   * @return $this|Main
+   */
+  public function setLogin(array $session): Main {
+    $this->login = $session['login'];
+    $this->name  = $session['name'];
+    $this->id    = $session['priority'];
+    $this->setLoginStatus('ok');
+    return $this;
+  }
+
+  /**
+   * @param string $status
+   *
+   * @return bool
+   */
+  public function checkStatus(string $status = 'ok'): bool {
+    return $this->status === $status;
+  }
+
+  /**
+   * @param string $status
+   * @return $this|Main
+   */
+  public function setLoginStatus(string $status): Main {
+    $this->status = $status;
+    return $this;
+  }
+
+  /**
+   * Проверка пароля
+   * @param string $target
+   * @return $this|Main
+   */
+  public function checkAuth(string $target = ''): Main {
+    $this->setLoginStatus('no');
+    session_start();
+
+    if (isset($_SESSION['hash'])
+        //&& !$this->checkStatus('error')
+        && $_SESSION['id'] === $_COOKIE['PHPSESSID']) {
+
+      if ($this->db->checkUserHash($_SESSION)) {
+        $this->setLogin($_SESSION);
+        $target === '' && reDirect(true, HOME_PAGE);
+      }
+    }
+
+    return $this;
+  }
+
+  /** Нужна ли регистрация для действия */
+  public function checkAction(string $action) {
+    return in_array($action, $this::$AVAILABLE_ACTION) ? true : $this->checkAuth('check');
+  }
+
+  /**
+   *   Перейти на страницу входа(login) если нет регистрации и доступ к открытой странице закрыт
+   * или нет регистрации и целевая страница не открыта
+   * @param string $target
+   * @return $this|Main
+   */
+  public function applyAuth(string $target = ''): Main {
+    if ($this->checkStatus('no') && $target !== 'login'
+        && (ONLY_LOGIN || (PUBLIC_PAGE && $target !== 'public'))) {
+      //$_SESSION['target'] = !in_array($target , [HOME_PAGE, PUBLIC_PAGE]) ? $target : '';
+      $_SESSION['target'] = $target;
+      reDirect(false);
+    } else if ($target === 'login' && isset($_REQUEST['status'])) $this->setLoginStatus('error');
+
+    session_abort();
+    return $this;
+  }
+
+  private function setSideMenu() {
+    if (USE_DATABASE) {
+      $menuAccess = isset($this->getSettings('permission')['menuAccess'])
+        ? $this->getSettings('permission')['menuAccess']
+        : false;
+
+      $menuAccess = $menuAccess ? explode(',', $menuAccess) : [];
+      $this->sideMenu = count($menuAccess) ? $menuAccess : ACCESS_MENU;
+    } else {
+      $filterMenu = ['orders', 'calendar', 'customers', 'users', 'statistic', 'catalog'];
+      $this->sideMenu = array_filter(ACCESS_MENU, function ($m) use ($filterMenu) {
+        return !in_array($m, $filterMenu);
+      });
+    }
+    PUBLIC_PAGE && $this->sideMenu = array_merge([PUBLIC_PAGE], $this->sideMenu);
+    $this->sideMenu[] = 'setting';
+  }
+
+  /**
+   * get array of pages
+   * @param bool $first
+   * @return array|mixed
+   */
+  public function getSideMenu(bool $first = false) {
+    return $first ? array_values($this->sideMenu)[0]
+                  : $this->sideMenu;
+  }
+
+  /**
+   * Check available page
+   * @param string $page
+   * @return bool
+   */
+  public function availablePage(string $page): bool {
+    return in_array($page, $this->getSideMenu());
+  }
+
+}
+
+/**
+ * Trait Page
+ * @package cms
+ */
+trait Page {
+  private $target;
+
+  /**
+   * @return mixed
+   */
+  public function getTarget() {
+    return $this->target;
+  }
+
+  /**
+   * @param mixed $get
+   */
+  public function setTarget($get) {
+    $this->target = (isset($get['targetPage']) && $get['targetPage'] !== '') ?
+      str_replace('/', '', $get['targetPage']) : HOME_PAGE;
+  }
+}
+
+/**
+ * Trait dictionary
+ * @package cms
+ */
+trait Dictionary {
+
+  /**
+   * @var string
+   */
+  private $dictionaryPath = ABS_SITE_PATH . 'lang/dictionary.php';
+
+  private function includeFromSetting() {
+    if (isset($this->setting['managerSetting'])) {
+      $list = $this->setting['managerSetting'];
+      return array_reduce(array_keys($list), function ($r, $k) use ($list) {
+        $r[$k] = $list[$k]['name'];
+        return $r;
+      }, []);
+    }
+    return [];
+  }
+
+  /** Словарь lang/dictionary.php (для gTxt) */
+  public function getDictionary(): array {
+    $mess = [];
+    if (file_exists($this->dictionaryPath)) include $this->dictionaryPath;
+    return array_merge($mess, $this->includeFromSetting());
+  }
+
+  /** Словарь lang/dbDictionary.php (для gTxtDB) */
+  public function getDbDictionary(): array {
+    $mess = [];
+    $path = ABS_SITE_PATH . 'lang/dbDictionary.php';
+    if (file_exists($path)) include $path;
+    return $mess;
+  }
+
+  public function initDictionary() {
+    $mess = [];
+    include $this->dictionaryPath;
+    $mess = array_merge($mess, $this->includeFromSetting());
+    $mess = json_encode($mess);
+    return $mess ? "<input type='hidden' id='dictionaryData' value='$mess'>" : '';
+  }
+}
+
+/** Trait Cache */
+trait Cache {
+
+  private $updateTime = 1209600; // 2 Недели.
+  /**
+   * @var array
+   */
+  private $cvsVars = ['all'];
+  /**
+   * @var bool
+   */
+  private $needCsvCached = false;
+
+  private function checkEditTime() {
+    $this->needCsvCached = time() - filemtime(CSV_CACHE_FILE) > $this->updateTime;
+  }
+
+  public function setCsvVariable(array $vars) {
+    $this->cvsVars = $vars;
+    return $this;
+  }
+
+  /**
+   * @param mixed ...$vars
+   * @return bool if loaded, then return true
+   */
+  public function loadCsvCache(&...$vars) {
+    if (file_exists(CSV_CACHE_FILE)) {
+      $this->checkEditTime();
+
+      if (!$this->needCsvCached) {
+        $data = json_decode(gzuncompress(file_get_contents(CSV_CACHE_FILE)), true);
+        $this->setCsvVariable(array_keys($data));
+        foreach (array_values($data) as $index => $var) {
+          $vars[$index] = $var;
+        }
+        return true;
+      }
+    } else {
+      $this->needCsvCached = true;
+    }
+    return false;
+  }
+
+  public function saveCsvCache(...$vars) {
+    if (file_exists(CSV_CACHE_FILE)) {
+      $this->checkEditTime();
+
+    } else {
+      $data = [];
+      foreach ($this->cvsVars as $index => $key) $data[$key] = $vars[$index];
+      file_put_contents(CSV_CACHE_FILE, gzcompress(json_encode($data), 1));
+    }
+  }
+
+}
+
+/**
+ * Trait hooks
+ * @package cms
+ */
+trait Hooks {
+  private $hooks = [];
+
+  public function addHook($hookName, $callable) {
+    $this->addAction($hookName, $callable);
+  }
+
+  public function addAction($hookName, $callable) {
+    if (!is_string($hookName) || !is_callable($callable)) return;
+
+    $this->hooks[$hookName] = $callable;
+  }
+
+  public function execAction($hookName, ...$args) {
+    if ($this->exist($hookName)) {
+      $func = $this->hooks[$hookName];
+
+      if (!isset($args) || !is_array($args)) {
+        $args = [];
+      }
+
+      if (isset($func)) {
+        return $func(...$args);
+      }
+    }
+    return false;
+  }
+
+  public function exist($hookName) {
+    return isset($this->hooks[$hookName]);
+  }
+}
 
 final class Main {
   use Authorization;
   use Dictionary;
   use Cache;
   use Hooks;
-  use Utilities;
-
-  /**
-   * @const array
-   */
-  const DEALER_MENU = ['dealers'];
-
-  /**
-   * @var array - global Cms param
-   */
-  const CMS_PARAM = [
-    'PROJECT_TITLE' => 'Project title',
-    'ACCESS_MENU'   => ['admindb', 'calendar', 'catalog', 'customers', 'dealers', 'fileManager', 'orders', 'statistic', 'users'],
-  ];
-
-  const SETTINGS_PATH = SHARE_PATH . 'settingSave.json';
+  use Page;
 
   /**
    * @var array
@@ -32,339 +338,94 @@ final class Main {
   /**
    * @var array
    */
-  private $cmsParam = [];
+  private $dbConfig;
 
   /**
    * @var array
    */
-  private $controllerField;
+  private $dbTables = [];
 
   /**
-   * @var array
+   * @var RedBeanPHP\Db|null
    */
-  public $dbTables = [];
+  private $dbInstance = null;
 
-  /**
-   * @var boolean
-   */
-  public $frontSettingInit = false;
-
-  /**
-   * Main constructor.
-   * @param array $cmsParam
-   * @param array $dbConfig
-   */
-  public function __construct(array $cmsParam, array $dbConfig) {
-    $this->setCmsParam(array_merge($this::CMS_PARAM, $cmsParam));
-    $this->setCmsParam(VC::ONLY_LOGIN, $cmsParam['ONLY_LOGIN'] ?? !boolval(PUBLIC_PAGE));
-    $this->setSettings(VC::DB_CONFIG, $dbConfig);
+  public function __construct($dbConfig) {
+    $this->dbConfig = $dbConfig;
+    $this->loadSetting();
   }
-  /**
-   * @param string $value
-   * @return DbMain|Dealer|UrlGenerator|Response
-   */
-  public function __get(string $value) {
-    if ($value === 'url') {
-      $this->url = new UrlGenerator($this, 'core/');
-    }
-    else if ($value === 'db') {
-      $this->db = new DbMain($this);
-    }
-    else if ($value === 'dealer') {
-      $this->dealer = new Dealer($this);
-    }
-    else if ($value === 'response') {
-      $this->response = new Response($this);
+
+  public function __get($value) {
+    if ($value === 'db') {
+      if ($this->dbInstance === null) {
+        require_once CORE . 'model/classes/Db.php';
+        $this->dbInstance = new RedBeanPHP\Db($this->dbConfig);
+      }
+      return $this->dbInstance;
     }
 
     return $this->$value;
   }
-  public function afterConstDefine() {
-    $this->loadSetting()
-         ->setHooks();
-  }
-  public function beforeController() {
-    if (!OUTSIDE) {
-      $this->checkAuth()
-        ->setAccount()
-        ->applyAuth();
-    }
-
-    if ($this->url->getRoute() === '404') return;
-
-    if ($this->isDealer()) {
-      $this->checkDealer();
-      $this->setDealerParam();
-    }
-  }
-
-  /* -------------------------------------------------------------------------------------------------------------------
-    Cms Params
-  --------------------------------------------------------------------------------------------------------------------*/
-
-  private function setDealerParam(): Main {
-    // Remove access menu for dealer
-    $filter = $this::DEALER_MENU;
-
-    $this->setCmsParam('ACCESS_MENU',
-      array_filter($this->getCmsParam('ACCESS_MENU'),
-        function ($item) use ($filter) {
-          return !includes($filter, $item);
-        }
-      )
-    );
-
-    return $this;
-  }
 
   /**
-   * setCmsSetting from config
-   * @param string[]|string $param
-   * @param $value
    *
-   * @return Main
    */
-  public function setCmsParam($param, $value = null): Main {
-    if (is_array($param)) {
-      array_walk($param, function ($item, $key) {
-        if ($key === VC::CSV_PATH) $item = ABS_SITE_PATH . $item;
-
-        $this->cmsParam[$key] = $item;
-      });
-    }
-
-    else if ($value !== null) {
-      $this->cmsParam[$param] = $value;
-    }
-
-    return $this;
+  private function loadSetting() {
+    $this->setting = [];//getSettingFile();
   }
 
-  /**
-   * @param string $param
-   * @return mixed|string|null
-   */
-  public function getCmsParam(string $param) {
-    $param = explode('.', $param);
-
-    if (count($param) === 1) {
-      return $this->cmsParam[$param[0]] ?? null;
-    } else {
-      return $this->cmsParam[$param[0]][$param[1]] ?? null;
-    }
-  }
-
-  /* -------------------------------------------------------------------------------------------------------------------
-    Settings
-  --------------------------------------------------------------------------------------------------------------------*/
-
-  /**
-   * Load setting from file
-   *
-   * @return Main
-   */
-  private function loadSetting(): Main {
-    $setting = [];
-    $settingPath = $this->url->getPath(true) . self::SETTINGS_PATH;
-
-    if (file_exists($settingPath)) {
-      $setting = json_decode(file_get_contents($settingPath), true);
-    }
-
-    $settingPath = $this->url->getBasePath(true) . self::SETTINGS_PATH;
-    if ($this->isDealer()) {
-      $mainSetting = json_decode(file_get_contents($settingPath), true);
-      $setting[VC::OPTION_PROPERTIES] = $mainSetting[VC::OPTION_PROPERTIES] ?? [];
-      $setting[VC::DEALER_PROPERTIES] = $mainSetting[VC::DEALER_PROPERTIES] ?? [];
-    }
-
-    $this->setting = array_merge($this->setting, $setting);
-    return $this;
-  }
   private function checkXml() {
+    require_once CORE . 'model/classes/Xml.php';
     Xml::checkXml($this->dbTables);
   }
+
+  public function setSettings($key, $value) {
+    $this->setting[$key] = $value;
+  }
+
+  /**
+   * Get one setting or array if have
+   * @param $key
+   * @return false|mixed|string
+   */
+  public function getSettings($key) {
+    if ($key === 'json') return json_encode($this->setting);
+    if (isset($this->setting[$key])) return $this->setting[$key];
+    return false;
+  }
+
   /**
    * Установка всех параметров для аккаунта
    * @return $this
    */
-  private function setAccount(): Main {
-    // Меню
-    $this->setSideMenu();
+  public function setAccount(): Main {
+    if ($this->checkStatus('ok')) {
+      // Меню
+      $this->setSideMenu();
 
-    if ($this->checkStatus() && $this->availablePage('admindb')) {
-      $dbTables = [];
-      if (USE_DATABASE) {
-        if (CHANGE_DATABASE) {
-          $dbTables = array_merge($dbTables, $this->db->getTables());
-        } else if ($this->availablePage('catalog')) {
-          $props = array_merge([[
-            'dbTable' => 'codes',
-            'name'    => gTxtDB('codes', 'codes')
-          ]], $this->db->getTables('prop'));
+      if (DB_TABLE_IN_SIDEMENU) {
+        $dbTables = [];
+        if (USE_DATABASE) {
+          if (CHANGE_DATABASE) {
+            $dbTables = array_merge($dbTables, $this->db->getTables());
+          } else if (in_array('catalog', ACCESS_MENU)) {
+            $props = array_merge([[
+              'dbTable' => 'codes',
+              'name' => gTxtDB('codes', 'codes')
+            ]], $this->db->getTables('prop'));
 
-          $props = array_map(function ($prop) {
-            $setting = $this->getSettings(VC::OPTION_PROPERTIES)[$prop['dbTable']] ?? false;
-            $setting && $setting['name'] && $prop['name'] = $setting['name'];
-            return $prop;
-          }, $props);
-          $dbTables = array_merge($dbTables, ['z_prop' => $props]);
+            $props = array_map(function ($prop) {
+              $setting = $this->getSettings('propertySetting')[$prop['dbTable']] ?? false;
+              $setting && $setting['name'] && $prop['name'] = $setting['name'];
+              return $prop;
+            }, $props);
+            $dbTables = array_merge($dbTables, ['z_prop' => $props]);
+          }
         }
-      }
-      $this->dbTables = array_merge($dbTables, $this->db->scanDirCsv($this->getCmsParam(VC::CSV_PATH)));
-      // TODO $this->checkXml();
-
-      if (USE_CONTENT_EDITOR) {
-        $this->dbTables[] = [
-          'fileName' => 'content-js',
-          'name'     => gTxt('Content editor'),
-        ];
+        $this->dbTables = array_merge($dbTables, $this->db->scanDirCsv(PATH_CSV));
+        //$this->checkXml();
       }
     }
-    return $this;
-  }
-
-  /**
-   * @param string $key
-   * @param mixed $value
-   * @return $this
-   */
-  public function setSettings(string $key, $value): Main {
-    $this->setting[$key] = $value;
-
-    return $this;
-  }
-
-  /**
-   * Save cms setting to file
-   */
-  public function saveSettings() {
-    $content = $this->setting;
-
-    unset($content['permission'], $content[VC::DB_CONFIG]);
-
-    file_put_contents($this->url->getPath(true) . self::SETTINGS_PATH, json_encode($content));
-  }
-
-  /**
-   * Get one setting or array if it has
-   * @param string $key [
-   * 'json' - return json, <p>
-   * 'managerFields' - return managers custom fields, <p>
-   * 'mailTarget' - <p>
-   * 'mailTargetCopy' - <p>
-   * 'mailSubject' - <p>
-   * 'mailFromName' - <p>
-   * 'optionProperties' - <p>
-   * @param boolean $front if true - ready html input
-   * @return mixed
-   */
-  public function getSettings(string $key = '', bool $front = false) {
-    $data = $this->setting[$key] ?? null;
-    $jsonData = $key === 'json' || $front ? json_encode($data ?: $this->setting) : '';
-
-    if ($front) {
-      $this->frontSettingInit = true;
-      return "<input type='hidden' id='dataSettings' value='$jsonData'>";
-    }
-    else if ($key === 'json') return $jsonData;
-
-    return empty($key) ? $this->setting : ($this->setting[$key] ?? null);
-  }
-
-  /**
-   * @param mixed $field
-   * @return Main
-   */
-  public function setControllerField(&$field): Main {
-    $this->controllerField =& $field;
-    return $this;
-  }
-
-  /**
-   * @param string $key
-   * @param mixed $value
-   * @param mixed $position [optional] <br>
-   * before - if string - prepend to the beginning. if array - prepend elements to the beginning of an array<br>
-   * after - if string - append to the end. if array - append elements to the end of an array<br>
-   * @return $this
-   */
-  public function addControllerField(string $key, $value, string $position = 'after'): Main {
-    if (isset($this->controllerField[$key])) {
-      $field =& $this->controllerField[$key];
-
-      if (is_string($field)) {
-        if ($position === 'before') $field = $value . $field;
-        else $field .= $value;
-      }
-      else if (is_array($field)) {
-        if ($position === 'before') array_unshift($field, $value);
-        else array_push($field, $value);
-      }
-      else if (is_object($field)) $field->$key = $value;
-
-    } else {
-      $this->controllerField[$key] = $value;
-    }
-    return $this;
-  }
-
-  /*
-   * @param string $key
-   * @param mixed $value
-   * @return $this
-   *
-  public function addControllerField(string $key, $value): Main {
-    if (!isset($this->controllerParam['field'])) $this->controllerParam['field'] = [];
-
-    if (isset($this->controllerParam['field'][$key])) {
-      $field =& $this->controllerParam['field'][$key];
-
-      if (is_array($field)) $field[] = $value;
-      else if (is_object($field)) $field->$key = $value;
-
-    } else {
-      $this->controllerParam['field'][$key] = $value;
-    }
-    return $this;
-  }*/
-
-  public function getControllerField(): array {
-    return $this->controllerField;
-  }
-
-  public function getControllerParam(string $key) {
-    //return $this->controllerParam[$key] ?: false;
-  }
-
-  public function initDefaultController(): Main {
-    $target = $this->url->getRoute();
-
-    $field = [
-      'main'        => $this,
-      'headContent' => '',
-      'pageTitle'   => gTxt($target),
-      'cssLinks'    => [],
-      'jsLinks'     => [],
-
-      'pageHeader' => null,
-      'sideLeft'   => null,
-      'sideRight'  => null,
-      'pageFooter' => null,
-      'footerContent'     => null,
-      'footerContentBase' => null,
-
-      'global'   => null,
-    ];
-
-    $this->setControllerField($field)->fireHook($target . 'Template', $field);
-    ob_start();
-    include $this->url->getRoutePath();
-    $templateContent = ob_get_clean();
-    $field['content'] = $field['content'] ?? (empty($templateContent) ? $target . ' default content.' : $templateContent);
-    if ($target === '404') $field['global'] = $field['content'];
-    $this->response->setContent(template('base', $field));
-
     return $this;
   }
 
@@ -372,17 +433,8 @@ final class Main {
     return $this->dbTables;
   }
 
-  public function getDB(): DbMain {
+  public function getDB(): RedBeanPHP\Db {
     return $this->db;
-  }
-
-  public function reDirect(string $target = '') {
-    if ($target === '') {
-      $target = $_SESSION['target'] ?? '';
-      isset($_GET['orderId']) && $target .= '?orderId=' . $_GET['orderId'];
-    }
-    header('location: ' . $this->url->getUri() . $target);
-    die;
   }
 
   /**
@@ -393,35 +445,12 @@ final class Main {
    * @default $justRate = false
    */
   public function getCourse(string $dataId = 'dataRate', bool $justRate = false): string {
-    $rateParam = [
-      VC::AUTO_REFRESH   => $this->getSettings(VC::AUTO_REFRESH),
-      VC::SERVER_REFRESH => $this->getSettings(VC::SERVER_REFRESH),
-    ];
-    $rate = new Course($rateParam, $this->db);
-    $rate = $justRate ? array_map(function ($rate) { return $rate['rate']; }, $rate->rate) : $rate->rate;
+    require_once CORE . 'model/classes/Course.php';
+    $rate = new Course($this->db);
+    $rate = $justRate ? array_map(function ($rate) { return $rate['rate'];}, $rate->rate) : $rate->rate;
     $rate = json_encode($rate);
     return "<input type='hidden' id='$dataId' value='$rate'>";
   }
-
-  /**
-   * @var bool
-   */
-  public $publicDealer = false;
-  /**
-   * @var string
-   */
-  private $dealCsvPath = '';
-
-  public function publicMain() {
-    $this->publicDealer = false;
-    $this->dealCsvPath = $this->getCmsParam(VC::CSV_PATH);
-    $this->setCmsParam(VC::CSV_PATH, $this->getCmsParam('csvMain'));
-  }
-
-  public function publicDealer() {
-    if ($this->isDealer()) {
-      $this->publicDealer = true;
-      $this->setCmsParam(VC::CSV_PATH, $this->dealCsvPath);
-    }
-  }
 }
+
+$main = new Main(USE_DATABASE ? $dbConfig : []);

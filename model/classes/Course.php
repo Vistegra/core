@@ -1,7 +1,8 @@
 <?php
 
+!defined('PATH_CSV') && define('PATH_CSV', $_SERVER['DOCUMENT_ROOT'] . '/csv');
+
 class Course {
-  const COURSE_CACHE = ABS_SITE_PATH . SHARE_PATH . 'courseCache.bin';
   const REFRESH_INTERVAL = 36000;
   const LINK_PARAM = '';
   const DEFAULT_CURRENCY = 'RUS'; // Определить валюту по умолчанию по домену
@@ -17,7 +18,6 @@ class Course {
   private $db;
   private $xml;
   private $dataFile;
-  private $sourceKey;
 
 
   /**
@@ -25,26 +25,17 @@ class Course {
    */
   public $rate;
 
-  /**
-   * @param        $db
-   * @param array  $refreshParam
-   * @param string $dataFile
-   */
-  public function __construct(array $refreshParam, &$db,  string $dataFile = '') {
-    $dataFile = empty($dataFile) ? $this::COURSE_CACHE : $dataFile;
-    $this->sourceKey = $refreshParam[VC::SERVER_REFRESH] ?: $this::DEFAULT_CURRENCY;
-
+  public function __construct(&$db, $dataFile = PATH_CSV . 'exchange_rate.bin') {
     if (is_object($db)) $this->getRateFromDb($db);
     else $this->getRateFromFile($dataFile);
 
-    if ($refreshParam[VC::AUTO_REFRESH] ?? true) $this->refresh();
+    $this->refresh();
   }
 
   private function checkTableMoney() {
     // проверить есть ли в Таблице базовая валюта
   }
 
-  /** Не нужна, наверное */
   private function getMainCurrency() {
     $res = array_filter($this->rate, function ($c) { return boolval($c['main']); });
     if (count($res)) return array_values($res)[0];
@@ -52,19 +43,11 @@ class Course {
     return $this->rate[self::DEFAULT_CURRENCY] ?? array_values($this->rate)[0];
   }
 
-  /**
-   * @param string $code
-   * @return array|false
-   */
-  private function searchRate(string $code) {
+  private function searchRate($code) {
     foreach ($this->xml as $c) {
       if (strval($c->CharCode) === $code) {
-        $scale = strval($c->Scale ? $c->Scale : $c->Nominal);
-        $rate = strval($c->Value ? $c->Value : $c->Rate);
-        return [
-          'scale' => floatval(str_replace(",", ".", $scale)),
-          'rate'  => round(floatval(str_replace(",", ".", $rate)), 4),
-        ];
+        $rate = $c->Value ? strval($c->Value) : strval($c->Rate);
+        return round((float) str_replace(",", ".", $rate), 4);
       }
     }
     return false;
@@ -103,23 +86,16 @@ class Course {
   }
 
   private function readFromCbr(): void {
-    //$mainCurrency = $this->getMainCurrency();
-    //$linkSource = $this->source[$mainCurrency['code']] ?? false; Не правильно привязываться к главной валюте банк обновления.
+    $mainCurrency = $this->getMainCurrency();
 
-    if (!$this->xml = simplexml_load_file($this->source[$this->sourceKey] . $this::LINK_PARAM)) return;
+    $linkSource = $this->source[$mainCurrency['code']] ?? false;
+
+    if (!$linkSource || (!$this->xml = simplexml_load_file($linkSource . $this::LINK_PARAM))) return;
 
     foreach ($this->rate as $code => $currency) {
-      /*if ($currency === $mainCurrency) {
-        $this->rate[$code]['scale'] = 1;
-        $this->rate[$code]['rate'] = 1;
-        continue;
-      }*/
-
+      if ($currency === $mainCurrency) continue;
       $value = $this->searchRate($code);
-      if ($value) {
-        $this->rate[$code]['scale'] = $value['scale'];
-        $this->rate[$code]['rate'] = $value['rate'];
-      }
+      if ($value) $this->rate[$code]['rate'] = $value;
     }
   }
 

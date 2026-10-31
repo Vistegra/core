@@ -1,65 +1,62 @@
-<?php if (!defined('MAIN_ACCESS')) die('access denied!');
+<?php if ( !defined('MAIN_ACCESS')) die('access denied!');
 
 /**
- * @var Main $main - global
+ * @var object $main
  * @var array $param
  */
 
 $field['content'] = template('parts/customersContent', $param);
+$field['pageFooter'] = '<div id="paginator" class="w-100"></div>';
 
-$field['footerContent'] .= <<<footerContent
+$field['footerContent'] = <<<footerContent
 <template id="tableOrderBtn">
   <input type="button" class="btn btn-info btn-sm table-th" value="Посмотреть заказы" data-id="\${id}" data-action="openOrders">
 </template>
 <template id="tableOrdersNumbers">
-  <div class="form-check mb-1">
-    <input class="form-check-input" type="radio" name="orders" id="orders-\${value}" value="\${value}">
-    <label class="form-check-label" for="orders-\${value}">Заказ №\${value}</label>
+  <div>
+    <label class="m-2 d-flex">
+      <input type="radio" name="orders" value="\${value}">
+      <span class="ml-2">Заказ №\${value}</span>
+    </label>
   </div>
 </template>
 <template id="tableContactsValue">
   <div>\${key}: \${value}</div>
 </template>
 <template id="customerForm">
-  <form class="was-validated" action="#">
-    <div class="form-floating my-3">
-      <input type="text" class="form-control" id="cName" placeholder="Имя" name="name" value="">
-      <label for="cName">Имя</label>
+  <form action="#">
+    <div class="form-group">
+      <label class="w-100">Имя: <input type="text" class="form-control" name="name" value=""></label>
+    </div>
+    <div class="form-group">
+      <label class="w-100">Телефон: <input type="tel" class="form-control" name="phone"></label>
+    </div>
+    <div class="form-group">
+      <label class="w-100">Почта: <input type="email" class="form-control" name="email"></label>
     </div>
     
-    <div class="form-floating mb-3">
-      <input type="tel" class="form-control" id="cPhone" placeholder="Телефон" name="phone" value="">
-      <label for="cPhone">Телефон</label>
-    </div>
- 
-    <div class="form-floating mb-3">
-      <input type="email" class="form-control" id="cMail" placeholder="Почта" name="email" value="">
-      <label for="cMail">Почта</label>
-    </div>
-    
-    <div class="row mb-3">
-      <div class="col">
-        <div class="form-check">
-          <input class="form-check-input" type="radio" name="cType" value="i" id="cTypeI" data-target="customerTypeI">
-          <label class="form-check-label" for="cTypeI">Физ.лицо</label>
-        </div>
+    <div class="saveOrderField modal-content__form grid-block margin-top">
+      <div class="modal-content__field">
+        <label class="radio">
+          <input type="radio" name="cType" value="i" checked data-target="customerTypeI">
+          <span class="radio__text">Физ.лицо</span>
+        </label>
       </div>
-      <div class="col">
-        <div class="form-check">
-          <input class="form-check-input" type="radio" name="cType" value="b" id="cTypeB" data-target="customerTypeB">
-          <label class="form-check-label" for="cTypeB">Юр.лицо</label>
-        </div>
+
+      <div class="modal-content__field">
+        <label class="radio">
+          <input type="radio" name="cType" value="b" data-target="customerTypeB">
+          <span class="radio__text">Юр.лицо</span>
+        </label>
       </div>
     </div>
     
-    <div class="form-floating mb-3">
-      <input type="text" class="form-control" id="address" placeholder="Адрес" name="address" value="">
-      <label for="address">Адрес</label>
+    <div class="form-group">
+      <label class="w-100">Адрес: <input type="text" name="address" value="" class="form-control"></label>
     </div>
     
-    <div class="form-floating mb-3" data-relation="customerTypeB && !customerTypeI">
-      <input type="text" class="form-control" id="ITN" placeholder="ИНН" name="ITN" value="">
-      <label for="ITN">ИНН</label>
+    <div class="form-group" data-relation="customerTypeB && !customerTypeI">
+      <label class="w-100">ИНН: <input type="text" name="ITN" value="" class="form-control"></label>
     </div>
   </form>
 </template>
@@ -68,5 +65,5 @@ $field['footerContent'] .= <<<footerContent
 </template>
 footerContent;
 
-$field['footerContent'] .= '<a id="publicPageLink" href="' . $main->url->getPath() . '" hidden></a>';
+$field['footerContent'] .= '<a id="publicPageLink" href="' . PUBLIC_PAGE . '" hidden></a>';
 $field['footerContent'] .= $main->initDictionary();

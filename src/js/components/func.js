@@ -1,53 +1,18 @@
 "use strict";
 
-import './_loading.scss';
+//import './_loading.scss';
 
-const cacheStringFunction = fn => {
-  const cache = Object.create(null);
-  return (str => {
-    const hit = cache[str];
-    return hit || (cache[str] = fn(str));
-  });
-};
+import {c} from "./const.js";
+import {q} from "./query.js";
 
-export default {
+const func = {
+
   // Simple and often used function
   // ------------------------------------------------------------------------------------------------
 
-  /**
-   * @param {string} msg
-   */
-  log: msg => f.DEBUG && console.log('Error:' + msg),
-
-  // String
-  // -------------------------------------------------------------------------------------------------------------------
-  capitalize: cacheStringFunction(str => str.trimLeft().charAt(0).toUpperCase() + str.slice(1)),
-  camelize: cacheStringFunction(str => {
-    return str.toLowerCase()
-              .replace(/\W(\w+)/g, (_, w) => w ? f.capitalize(w) : '')
-              .replace(/\s|-|_/g, '');
-  }),
-
-  // Array
-  // -------------------------------------------------------------------------------------------------------------------
+  log: msg => c.DEBUG && console.log('Error:' + msg),
 
   /**
-   *
-   * @param {array} arr
-   * @param item
-   */
-  arrRemoveItem: (arr, item) => !!arr.splice(arr.indexOf(item), 1).length,
-
-  // Helpers
-  isMobile: (ua = navigator.userAgent) => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) || window.innerWidth < 578,
-  isSafari: (ua = navigator.userAgent) => /^((?!chrome|android).)*safari/i.test(ua),
-
-  // DOM
-  // -------------------------------------------------------------------------------------------------------------------
-
-  /**
-   * Create element from string or
-   *
    * @param {string|HTMLElement} htmlOrTemplate
    * @return {Node}
    */
@@ -57,19 +22,18 @@ export default {
 
   /**
    * Get Element by id from document or shadow DOM
-   * @param {string} id String that specifies the ID value.
-   * @return {HTMLElement} HtmlElement
+   * @param id
+   * @return {HTMLElement | {}}
    */
-  gI: id => (window.shadowCalc || document).getElementById(id) || f.log('not found note by id -' + id),
+  gI: id => (c.calcWrap || document).getElementById(id) || func.log('not found note by id -' + id),
 
   /**
-   * document.querySelector
    * @param {string} selector
    * @param {HTMLElement} node
    * @return {HTMLElement | {}}
    */
-  qS: (selector = '', node = window.shadowCalc) =>
-    (node || document).querySelector(selector) || f.log(selector),
+  qS: (selector = '', node = c.calcWrap) =>
+    (node || document).querySelector(selector) || func.log(selector),
 
   /**
    *
@@ -79,7 +43,7 @@ export default {
    * @return NodeListOf<HTMLElementTagNameMap[*]>|object
    */
   qA: (selector, nodeKey = null, value = null) => {
-    let nodeList = (window.shadowCalc || document).querySelectorAll(selector);
+    let nodeList = (c.calcWrap || document).querySelectorAll(selector);
     if (!nodeList) return [];
     if (nodeKey && value) nodeList.forEach(item => {
       if (typeof value === 'function') {
@@ -98,17 +62,17 @@ export default {
    * @param {string} selector
    * @return {string}
    */
-  gT: selector => { let node = f.qS(selector); return node ? node.content.children[0].outerHTML : 'Not found template' + selector},
+  gT: selector => { let node = func.qS(selector); return node ? node.content.children[0].outerHTML : 'Not found template' + selector},
 
   /**
    * Получить Node шаблона
-   * @param {string} selector
+   * @param  {string} selector
    * @returns {Node}
    */
-  gTNode: selector => f.qS(selector).content.children[0].cloneNode(true),
+  gTNode: selector => func.qS(selector).content.children[0].cloneNode(true),
 
   getData: selector => {
-    const node = f.qS(selector),
+    const node = func.qS(selector),
           json = node && (JSON.parse(node.value));
     if (!node) return false;
     else node.remove();
@@ -121,7 +85,7 @@ export default {
    * @return {object}
    */
   getDataAsAssoc: selector => {
-    const arr   = Object.values(f.getData(selector) || []),
+    const arr   = Object.values(func.getData(selector) || []),
           fItem = arr[0],
           fKeys = Object.keys(fItem);
 
@@ -133,21 +97,21 @@ export default {
     }
 
     return arr.reduce((r, i, index) => {
-      let idKey = i['id'] || i['key'] || Math.random() * 10000 | 0;
+      let idKey = i['id'] || i['key'] || Math.random() * 1000 | 0;
       r[idKey] && (idKey += index.toString());
       r[idKey] = oneValue ? i[oneValue] : i;
       return r;
     }, Object.create(null));
   },
-  getDataAsMap: selector => new Map(Object.entries(f.getDataAsAssoc(selector) || {})),
-  getDataAsSet: selector => new Set(Object.values(f.getData(selector) || [])),
-  getDataAsArray : selector => Object.values(f.getData(selector) || []),
+  getDataAsMap: selector => new Map(Object.entries(func.getDataAsAssoc(selector) || {})),
+  getDataAsSet: selector => new Set(Object.values(func.getData(selector) || [])),
+  getDataAsArray : selector => Object.values(func.getData(selector) || []),
 
   /** Показать элементы, аргументы коллекции NodeList */
   show: (...collection) => { collection.map(nodes => {
-    if (!nodes) return;
-    if (!nodes.forEach) nodes = [nodes];
-    nodes.forEach(n => n.classList.remove(f.CLASS_NAME.HIDDEN_NODE));
+    if(!nodes) return;
+    if(!nodes.forEach) nodes = [nodes];
+    nodes.forEach(n => n.classList.remove(c.CLASS_NAME.HIDDEN_NODE));
   }) },
 
   /**
@@ -155,9 +119,9 @@ export default {
    * @param collection
    */
   hide: (...collection) => { collection.map(nodes => {
-    if (!nodes) return;
-    if (!nodes.forEach) nodes = [nodes];
-    nodes.forEach(n => n.classList.add(f.CLASS_NAME.HIDDEN_NODE));
+    if(!nodes) return;
+    if(!nodes.forEach) nodes = [nodes];
+    nodes.forEach(n => n.classList.add(c.CLASS_NAME.HIDDEN_NODE));
   }) },
 
   /**
@@ -169,6 +133,46 @@ export default {
     let n;
     while ((n = node.firstChild)) n.remove();
     return node;
+  },
+
+  /**
+   * Replace latin to cyrillic symbol
+   * @param {string} value
+   * @return {void | string}
+   */
+  replaceLetter: value => {
+    let cyrillic = 'УКЕНХВАРОСМТ',
+        latin    = 'YKEHXBAPOCMT',
+        replacer = (match) => cyrillic.charAt(latin.indexOf(match)),
+        letters  = new RegExp(`(${latin.split('').join('|')})`, 'gi');
+    return value.replace(letters, replacer).replace(/(&nbsp| | )/g, '').toLowerCase(); // какой-то пробел
+  },
+
+  /**
+   * replace ${key from obj} from template to value from obj
+   * @param {string} tmpString html string template
+   * @param {array} arrayObjects - array of object
+   * @return {string}
+   */
+  replaceTemplate: (tmpString, arrayObjects) => {
+    let html = '';
+
+    if (tmpString) {
+      if (!arrayObjects.map) arrayObjects = [arrayObjects];
+
+      arrayObjects.map(item => {
+        let tmp = tmpString.trim();
+        Object.entries(item).map(v => {
+          if (!v[1]) v[1] = '';
+          let reg = new RegExp(`\\\${${v[0]}}`, 'mgi');
+          tmp     = tmp.replace(reg, v[1].toString().replace(/"/g, '\'')); // replace ${key from obj} from template to value from obj //не помогло
+        });
+
+        html += tmp;
+      })
+    }
+
+    return html;
   },
 
   /**
@@ -218,12 +222,12 @@ export default {
       } else console.warn('Event relatedOption: target not found' + key);
 
       return targetNodes[key];
-    }
+      }
     const checkedTarget = (node, member) => {
       let {relation, relationT} = member;
 
       relationT.forEach(t => {
-        !member.nodesT[t] && (member.nodesT[t] = [...qs(`input[data-target="${t}"], select [data-target="${t}"]`)]);
+        !member.nodesT[t] && (member.nodesT[t] = [...f.qA(`input[data-target="${t}"], select [data-target="${t}"]`)]);
 
         if (member.nodesT[t].length) {
           let checked = !!member.nodesT[t].find(item => item.checked || item.selected); // Находим в группе хоть 1 включенный (или противоположный выключенный)
@@ -288,6 +292,61 @@ export default {
   },
 
   /**
+   * Получить и скачать файл
+   * @param {string} fileName
+   * @return {HTMLAnchorElement}
+   */
+  createLink: fileName => {
+    //let date = new Date();
+    //fileName += '_' + date.getDate() + ("0" + (date.getMonth() + 1)).slice(-2) + (date.getYear() - 100) + '_' + date.getHours() + date.getMinutes() + date.getSeconds() + '.pdf';
+    let a = document.createElement('a');
+    a.setAttribute('download', fileName);
+    return a;
+  },
+
+  /**
+   * Save file from browser
+   * @param data {{'name', 'type' , 'blob'}}
+   *
+   * @example for PDF:
+   * {name: 'file.pdf',
+   * type: 'base64',
+   * blob: 'data:application/pdf;base64,' + data['pdfBody']}
+   */
+  saveFile: data => {
+    const {name = 'download.file', blob} = data;
+    let link = func.createLink(name);
+    if (data.type === 'base64') link.href = blob;
+    else link.href = URL.createObjectURL(blob);
+    link.click();
+  },
+
+  /**
+   * Маска для телефона
+   * @param {HTMLElement} node
+   * @param {string} phoneMask
+   */
+  maskInit: (node, phoneMask) => {
+    if (!node) return;
+    const minValue = 2;
+
+    const mask = e => {
+      let target = e.target, i = 0,
+          matrix = phoneMask || c.PHONE_MASK,
+          def = matrix.replace(/\D/g, ""),
+          val = target.value.replace(/\D/g, "");
+
+      if (def.length >= val.length) val = def;
+      target.value = matrix.replace(/./g,
+        a => /[_\d]/.test(a) && i < val.length ? val.charAt(i++) : i >= val.length ? "" : a );
+
+      if (e.type === "blur" && target.value.length <= minValue) target.value = "";
+    }
+
+    ['input', 'focus', 'blur'].map(e => node.addEventListener(e, mask));
+  },
+
+  /**
    * Активировать элементы
    * @param {NodeList} collection
    */
@@ -295,7 +354,7 @@ export default {
     collection.map(nodes => {
       if (!nodes.forEach) nodes = [nodes];
       nodes.forEach(n => {
-        n.classList.remove(f.CLASS_NAME.DISABLED_NODE);
+        n.classList.remove(c.CLASS_NAME.DISABLED_NODE);
         n.removeAttribute('disabled');
       });
     });
@@ -309,307 +368,73 @@ export default {
     collection.map(nodes => {
       if(!nodes.forEach) nodes = [nodes];
       nodes.forEach(n => {
-        n.classList.add(f.CLASS_NAME.DISABLED_NODE);
+        n.classList.add(c.CLASS_NAME.DISABLED_NODE);
         n.setAttribute('disabled', 'disabled');
       });
     });
   },
 
-  // Utilities
-  // -------------------------------------------------------------------------------------------------------------------
-
-  /**
-   * flatten
-   * @param {any[]} obj
-   * @return {array}
-   */
-  objectFlat: obj => {
-    let res = [];
-
-    if (typeof obj !== 'object' || obj === null) return obj;
-    if (!Array.isArray(obj)) obj = [...Object.keys(obj), ...Object.values(obj)];
-
-    for (const item of obj.flat()) {
-      if (typeof item === 'object') res = res.concat(f.objectFlat(item));
-      else res.push(item);
-    }
-
-    return res;
-  },
-
-  /**
-   * Получить и скачать файл
-   * @param {string} fileName
-   * @return {HTMLAnchorElement}
-   */
-  createLink: fileName => {
-    //let date = new Date();
-    //fileName += '_' + date.getDate() + ("0" + (date.getMonth() + 1)).slice(-2) + (date.getYear() - 100) + '_' + date.getHours() + date.getMinutes() + date.getSeconds() + '.pdf';
-    let a = document.createElement('a'),
-        span = document.createElement('span');
-
-    a.setAttribute('download', fileName);
-    a.append(span);
-    span.onclick = () => {};
-    return a;
-  },
-
-  /**
-   * Save file from browser
-   * @param {object} data
-   * @param {string} data.name
-   * @param {string} data.type
-   * @param {string|Blob} data.blob
-   *
-   * @example for PDF:
-   * {name: 'file.pdf',
-   * type: 'base64',
-   * blob: 'data:application/pdf;base64,' + data['pdfBody']}
-   */
-  saveFile: data => {
-    const {name = 'download.file', blob} = data,
-          link = f.createLink(name);
-
-    if (data.type === 'base64') link.href = blob;
-    else link.href = URL.createObjectURL(blob);
-
-    document.body.append(link);
-    link.firstElementChild['click']();
-    link.remove();
-  },
-
-  /**
-   * Replace latin to cyrillic symbol
-   * @param {string} value
-   * @return {void | string}
-   */
-  replaceLetter: value => {
-    let cyrillic = 'УКЕНХВАРОСМТ',
-        latin    = 'YKEHXBAPOCMT',
-        replacer = (match) => cyrillic.charAt(latin.indexOf(match)),
-        letters  = new RegExp(`(${latin.split('').join('|')})`, 'gi');
-    return value.replace(letters, replacer).replace(/(&nbsp| | )/g, '').toLowerCase(); // какой-то пробел
-  },
-
-  /**
-   * replace ${key from obj} from template to value from obj
-   * @param {string} tmpString html string template
-   * @param {array|object} arrayObjects - array of object
-   * @return {string}
-   */
-  replaceTemplate: (tmpString, arrayObjects) => {
-    let html = '';
-
-    if (tmpString) {
-      if (!arrayObjects.map) arrayObjects = [arrayObjects];
-
-      arrayObjects.map(item => {
-        let tmp = tmpString.trim();
-        Object.entries(item).map(v => {
-          if (!v[1]) v[1] = '';
-          let reg = new RegExp(`\\\${${v[0]}}`, 'mgi');
-          tmp     = tmp.replace(reg, v[1].toString().replace(/"/g, '\'')); // replace ${key from obj} from template to value from obj //не помогло
-        });
-
-        html += tmp;
-      })
-    }
-
-    return html;
-  },
-
-  /**
-   * Маска для телефона
-   * @param {HTMLElement} node
-   * @param {string?} phoneMask
-   */
-  initMask: (node, phoneMask) => {
-    const minValue = 2,
-          maskGl = f.getSetting('phoneMaskGlobal'),
-          matrix = phoneMask || maskGl || f.PHONE_MASK_DEFAULT;
-
-    if (!node || !f.toBool(matrix)) return;
-
-    const mask = e => {
-      let target = e.target, i = 0,
-          def = matrix.replace(/\D/g, ""),
-          val = target.value.replace(/\D/g, "");
-
-      if (def.length >= val.length) val = def;
-      target.value = matrix.replace(/./g,
-        a => /[_\d]/.test(a) && i < val.length ? val.charAt(i++) : i >= val.length ? "" : a );
-
-      if (e.type === "blur" && target.value.length <= minValue) target.value = "";
-    };
-
-    node.dataset.mask = matrix;
-    ['input', 'blur'].map(e => node.addEventListener(e, mask));
-  },
-
   /**
    * Добавить иконку загрузки
    * @param {HTMLElement} node
-   * @param {boolean?} isLight
    */
-  setLoading: (node, isLight = false) => {
-    if (!(node instanceof HTMLElement)) {
-      console.warn('Loading - node is not HTMLElement');
-      return;
-    }
-
-    const isSingleTag = ['INPUT', 'HR', 'IMG'].includes(node.tagName),
-          cStyle = window.getComputedStyle(node),
-          c = node.getBoundingClientRect(),
-          side = Math.min(c.width, c.height),
-          size = side > 150 ? '-big' : side < 40 ? '-sm' : '';
-
-    if (cStyle.position === 'fixed') {
-      const loaderW = document.createElement('div'),
-            loader  = document.createElement('div');
-
-      loaderW.id = 'cmsLoaderWrapper';
-      loaderW.style.cssText = `position: fixed;
-        left: ${node.offsetLeft}px; top: ${node.offsetTop}px;
-        z-index: ${typeof cStyle.zIndex === "number" ? cStyle.zIndex + 1 : +1}`;
-      loader.style.cssText = `width: ${c.width}px; height: ${c.height}px;`;
-
-      loaderW.append(loader);
-      document.body.append(loaderW);
-      node = loader;
-    } else if (isSingleTag) {
-      const loader = document.createElement('div');
-
-      loader.id = 'cmsLoaderWrapper';
-      loader.style.cssText = `display: ${cStyle.display}; width: ${c.width}px; height: ${c.height}px;`;
-
-      node.after(loader);
-      loader.append(node);
-      node = loader;
-    }
-
-    node.classList.add('loading-st1' + size);
-    isLight && node.classList.add('loading-st1-light');
-
-    // Определить цвет?
-    /*    const rgb2hsl = ([r, g, b]) => {
-     const max = Math.max(r, g, b),
-     min = Math.min(r, g, b),
-     d = max - min;
-
-     let h, l = (max + min) / 2;
-
-     if (max === min) {
-     h = 0;
-     } else {
-     //s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-
-     switch (max) {
-     case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-     case g: h = (b - r) / d + 2; break;
-     case b: h = (r - g) / d + 4; break;
-     }
-     h /= 6;
-     }
-
-     // H - цветовой тон, S - насыщенность, L - светлота
-     return (h < 0.55 && l >= 0.5) || (h > 0.55 && l >= 0.75);
-     //return [h, s, l];
-     }
-
-     const color = window.getComputedStyle(node).backgroundColor,
-     rgb = /(\d+),? (\d+),? (\d+)/.exec(color)[0].split(','),
-     bool = rgb2hsl(rgb);*/
-  },
+  setLoading: node => node && node.classList.add(c.CLASS_NAME.LOADING),
   /**
    * Удалить иконку загрузки
    * @param {HTMLElement} node
    */
-  removeLoading: node => {
-    if (!(node instanceof HTMLElement)) {
-      console.warn('Loading - node is not HTMLElement');
-      return;
-    }
-
-    if (window.getComputedStyle(node).position === 'fixed') {
-      f.gI('cmsLoaderWrapper').remove();
-    }
-    if (['INPUT', 'HR', 'IMG'].includes(node.tagName)) {
-      node.parentNode['after'](node);
-      f.gI('cmsLoaderWrapper').remove();
-    } else {
-      node.classList.remove('loading-st1', 'loading-st1-sm', 'loading-st1-big', 'loading-st1-light');
-    }
-  },
+  removeLoading: node => node && node.classList.remove(c.CLASS_NAME.LOADING),
 
   /**
    * Функция печати по умолчанию
    * @param {object} report
-   * @returns {Node}
+   * @param {number} number
+   * @returns {string}
    */
-  printReport: (report) => {
-    let html = '';
+  printReport: (report, number = 1) => {
+    let table = f.gTNode('#printTable'),
+        html = '';
 
-    if (report.number)  html += `<span>Orders №${report.number}</span>${html}`;
-
-    html += '<table>';
     Object.values(report).map(i => {
-      html += '<tr><td>' + Object.values(i).join('</td><td>') + '</td></tr>';
+      html += `<tr><td>${i[0]}</td><td>${i[1]}</td><td>${i[2]}</td></tr>`;
     });
-    html += '</table>';
 
-    return f.createElement(html);
+    if (number) table.querySelector('#number').innerHTML = number.toString();
+    else table.querySelector('#numberWrap').classList.add(f.CLASS_NAME.HIDDEN_NODE);
+    table.querySelector('tbody').innerHTML = html;
+    return table.outerHTML;
   },
 
   /**
    *
    * @param {HTMLElement} target - loading field
    * @param {object} report - send to pdf
-   * @param {string?} report.fileName - result file name without extension
-   * @param {string?} report.fileTpl - pdf template file without extension
-   * @param {string?} report.pdfOrientation ['P', 'L'] - pdf orientation
-   * @param {FormData?} data - object of formData to send in query Body
-   * @param {function?} finishOk
-   * @param {function?} err
+   * @param {FormData} data - object of formData to send in query Body
+   * @param {function} finishOk
+   * @param {function} err
    */
   downloadPdf(target, report = {}, data = new FormData(), finishOk = () => {}, err = () => {}) {
-    let fileName = report.fileName || false;
-
-    f.setLoading(target);
+    func.setLoading(target);
     target.setAttribute('disabled', 'disabled');
 
+    let fileName = report.fileName || false;
+    //data.set('dbAction', 'DB');
     data.set('mode', 'docs');
-    data.set('cmsAction', 'pdf');
-    data.set('reportValue', JSON.stringify(report));
+    data.set('docsAction', 'pdf');
+    data.set('reportVal', JSON.stringify(report));
 
-    report.fileTpl && data.set('fileTpl', report.fileTpl);
-    report.pdfOrientation && data.set('pdfOrientation', report.pdfOrientation.toString().toUpperCase());
-
-    f.Post({data, type: f.isSafari() ? 'file' : 'json'}).then(data => {
-      f.removeLoading(target);
+    q.Post({data}).then(data => {
+      func.removeLoading(target);
       target.removeAttribute('disabled');
       if (data['pdfBody']) {
         f.saveFile({
           name: fileName || data['name'],
           type: 'base64',
-          blob: 'data:application/pdf;base64,' + data['pdfBody'],
+          blob: 'data:application/pdf;base64,' + data['pdfBody']
         });
+        finishOk();
       }
-      if (data instanceof Blob) {
-        f.saveFile({
-          name: fileName || data.fileName || 'pdf.pdf',
-          blob: data,
-        });
-      }
-      finishOk();
     });
-
-    // Get resource last created Pdf
-    if (f.DEBUG || true) {
-      window.pdfResources = () => {
-        data.set('resource', 'true');
-        f.Post({data}).then(data => {console.log(data['css']); console.log(data['html'])});
-      }
-    }
   },
 
   /**
@@ -629,7 +454,7 @@ export default {
    * @param {?string|number} param.orderTotal - important param for show in order table (save as JSON)
    * @param {object} param.importantVal - important param for show in order table (save as JSON)
    * @param {object} param.saveVal - input or other values (save as JSON)
-   * @param {object} param.reportValue - require param report (save as JSON)
+   * @param {object} param.reportVal - require param report (save as JSON)
    *
    * @default param.orderTotal = 0
    *
@@ -652,20 +477,16 @@ export default {
     // Order
     data.set('orderId', (param.orderId || 0).toString());
     data.set('orderTotal', (param.orderTotal || 0).toString());
-    data.set('importantValue', JSON.stringify(param.importantValue || {}));
+    data.set('importantVal', JSON.stringify(param.importantVal || {}));
     data.set('saveVal', JSON.stringify(param.saveVal || {}));
-    data.set('reportValue', JSON.stringify(param.reportValue || {}));
-    data.set('startShippingDate', (param['startShippingDate'] || '').toString());
-    data.set('endShippingDate', (param['endShippingDate'] || '').toString());
+    data.set('reportVal', JSON.stringify(param.reportVal || {}));
 
-    return f.Post({data});
+    return q.Post({data});
   },
 
   /**
    * send report to mail
    * @param {object} param
-   *
-   * @param {?formData} param.data - docType param (email)
    *
    * @param {?string} param.docType - docType param (email)
    * @param {?string} param.email - target email
@@ -686,17 +507,17 @@ export default {
    * @param {?boolean} param.orderChanged -
    * @param {?string} param.orderId - id of savedOrders
    * @param {object} param.saveVal - input or other values
-   * @param {object} param.reportValue - require param report
+   * @param {object} param.reportVal - require param report
    *
    * @return {object} - result {status}
    */
   sendOrder(param) {
-    const data = param.data || new FormData(),
+    const data = new FormData(),
           p    = param;
 
     data.set('mode', 'docs');
-    data.set('cmsAction', 'mail');
-    !data.has('email') && data.set('email', p.email || p.customer.email);
+    data.set('docsAction', 'mail');
+    data.set('email', p.email || p.customer.email);
     p.docType && data.set('docType', p.docType);
 
     // Показать информацию о Менеджере
@@ -705,7 +526,7 @@ export default {
     // Пользователь взять из сохранненного заказа или из найденного, если не изменен
     p.addCustomerInfo && data.set('addCustomer', 'true');
 
-    if (f.AUTH_STATUS && p.customer && p.customer.id && !p.customerChange) {
+    if (c.AUTH_STATUS && p.customer.id && !p.customerChange) {
       data.set('customerId', p.customer.id.toString());
     } else if (p.customer) {
       data.set('name', p.customer.name || '');
@@ -716,41 +537,25 @@ export default {
     }
 
     // Расчет загружен или сохранен и не изменен
-    if (f.AUTH_STATUS && p.orderId && !p.orderChanged) {
-      !data.has('orderId') && data.set('orderId', p.orderId.toString()); // Отчет из сохранненого заказа
+    if (c.AUTH_STATUS && p.orderId && !p.orderChanged) {
+      data.set('orderId', p.orderId.toString()); // Отчет из сохранненого заказа
     } else {
-      !data.has('reportValue') && data.set('reportValue', JSON.stringify(p.reportValue || {}));
+      data.set('saveVal', JSON.stringify(p.saveVal || {}));
+      data.set('reportVal', JSON.stringify(p.reportVal || {}));
     }
 
-    return f.Post({data});
+    return q.Post({data});
   },
 
   /**
    * Курсы валют (РФ/РБ)
    * @param {string} dataSelector
-   * @return {object}
+   * @return {void}
    */
-  getRate: (dataSelector = '#dataRate') => {
-    let node = f.qS(dataSelector), rate;
-
-    try {
-      let main, k;
-      rate = JSON.parse(node.value);
-
-      main = Object.values(rate).find(r => f.toNumber(r.main));
-      k = main.scale / main.rate;
-
-      Object.values(rate).forEach(r => {
-        //r.rate = k * (r.rate / r.scale);
-        r.rate = r.scale / r.rate / k;
-      });
-
-      node.remove();
-    } catch (e) {
-      f.showMsg('Load rate error: ' + e.message, 'error');
-      rate = Object.create(null);
-    }
-    return rate;
+  setRate: (dataSelector = '#dataRate') => {
+    let node = f.qS(dataSelector), json;
+    node && (json = JSON.parse(node.value)) && node.remove();
+    json && (this.rate = json['curs']);
   },
 
   /**
@@ -762,8 +567,8 @@ export default {
    * @return {void}
    */
   flashNode: (node, delay = 1000) => {
-    let def       = node.style.boxShadow,
-        boxShadow = 'red 0px 0px 4px 1px';
+    let def                 = node.style.boxShadow,
+        boxShadow           = 'red 0px 0px 4px 1px';
     def === boxShadow && (def = '');
     node.style.boxShadow    = boxShadow;
     node.style.borderRadius = '4px';
@@ -771,46 +576,6 @@ export default {
     setTimeout(() => {
       node.style.boxShadow = def || 'none';
     }, delay);
-  },
-
-  /**
-   * Random int number
-   * @param {number} min - from number or count digit
-   * @param {number} max - until number or undefined
-   * @return {number}
-   */
-  random: (min = 5, max = 0) => {
-    return max ? Math.floor(Math.random() * (max - min + 1) + min)
-               : Math.random() * Math.pow(10, min) | 0;
-  },
-  /**
-   * Generate unique string
-   * @param {number?} countChar - count of chars
-   */
-  unique: (countChar = 5) => new Array(countChar).fill('').map(() => {
-    const r = Math.random();
-    return String.fromCharCode(r < 0.334 ? f.random(48, 57) : r < 0.667 ? f.random(65, 90) : f.random(97, 122))
-  }).join(''),
-
-  /**
-   * Return false if<br>
-   * - string contain '', '-' or 'false',
-   * - array empty or contain empty, undefined, 0 or false values,
-   * - empty object
-   * @param v
-   * @return {boolean}
-   */
-  toBool: v => {
-    switch (typeof v) {
-      case "boolean": return v;
-      case "undefined": case "number": return !!v;
-      case "string": return !['', '0', '-', 'false'].includes(v.trim());
-      case "object":
-        if (v === null) return false;
-        if (Array.isArray(v))
-          return v.length ? v.reduce((r, i) => r || f.toBool(i), false) : false;
-        return Object.keys(v).length !== 0;
-    }
   },
 
   /**
@@ -836,7 +601,6 @@ export default {
     ((+value).toFixed(fractionDigits)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '),
 
   /**
-   * УДАЛИТЬ
    * Get value
    * @param {string|HTMLSelectElement} selector
    * @return {boolean|array}
@@ -851,8 +615,8 @@ export default {
 
   /**
    * trance literate
-   * @param {string} value
-   * @return {string}
+   * @param value
+   * @returns {string}
    */
   transLit(value) {
     const cyrillic = 'А-а-Б-б-В-в-Г-г-Д-д-Е-е-Ё-ё-Ж-ж-З-з-И-и-Й-й-К-к-Л-л-М-м-Н-н-О-о-П-п-Р-р-С-с-Т-т-У-у-Ф-ф-Х-х-Ц-ц-Ч-ч-Ш-ш-Щ-щ-Ъ-ъ-Ы-ы-Ь-ь-Э-э-Ю-ю-Я-я'.split('-'),
@@ -862,19 +626,6 @@ export default {
 
     return value.replaceAll(/\s/g, '_').replace(letters, replacer);
   },
-
-  /**
-   *
-   * @param {string?} key - possible values: mailTarget, mailTargetCopy, mailSubject, mailFromName <p>
-   *   managerFields, statusDefault, phoneMaskGlobal, ...
-   * @return mixed
-   */
-  getSetting(key) {
-    if (key) return f.CMS_SETTING[key] || false;
-    if (!f.INIT_SETTING || Object.keys(f.CMS_SETTING).length > 0) return null;
-
-    let node = f.gI('dataSettings');
-    node && (f.CMS_SETTING = JSON.parse(node.value));
-    node && node.remove();
-  },
 }
+
+export const f = Object.assign(func, q);

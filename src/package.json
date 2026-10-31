@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "description": "CMS project",
-  "name": "core-webpack",
+  "description": "My webpack project",
+  "name": "my-webpack-project",
   "private": true,
   "scripts": {
     "update": "git pull && npm run coreProd && npm run createResourceFile && npm run coreModuleProd",
@@ -11,43 +11,11 @@
     "createResourceFile": "node ./webpack/createResourceFile.js",
     "coreProd": "webpack --env production --config ./webpack/webpack.config.js",
     "coreModuleProd": "webpack --env production --config ./webpack/webpack.module.js",
-    "updateVersion": "node ./webpack/updateVersion.js",
 
     "coreDev": "webpack --config ./webpack/webpack.config.js",
     "coreModuleDev": "webpack --config ./webpack/webpack.module.js",
 
-    "createCypress": "node ./test/createCypressConfig.js",
-    "localCypressTest": "cypress open --project ../../ --config-file ./core/src/test/cypress.json"
-  },
-  "dependencies": {
-    "@tinymce/tinymce-vue": "^5.0.0",
-    "@tiptap/extension-color": "^2.0.0-beta.12",
-    "@tiptap/extension-highlight": "^2.0.0-beta.35",
-    "@tiptap/extension-link": "^2.0.0-beta.43",
-    "@tiptap/extension-text-align": "^2.0.0-beta.31",
-    "@tiptap/extension-text-style": "^2.0.0-beta.26",
-    "@tiptap/starter-kit": "^2.0.0-beta.190",
-    "@tiptap/vue-3": "^2.0.0-beta.96",
-    "mustache": "latest",
-    "normalize-scss": "latest",
-    "primevue": "3.12.6",
-    "vue": "^3.2.47"
-  },
-  "devDependencies": {
-    "@vue/compiler-sfc": "latest",
-    "css-loader": "latest",
-    "css-minimizer-webpack-plugin": "latest",
-    "cypress-watch-and-reload": "latest",
-    "file-loader": "latest",
-    "mini-css-extract-plugin": "2.4.6",
-    "sass": "latest",
-    "sass-loader": "latest",
-    "style-loader": "latest",
-    "svgo-loader": "latest",
-    "ts-loader": "^9.4.0",
-    "typescript": "~5.4.5",
-    "vue-loader": "^17.0.0",
-    "webpack": "latest",
-    "webpack-cli": "latest"
+    "localCypressTest": "cypress open --project ../../ --config-file ./core/src/tests/cypress.json --env external=false",
+    "cypressDeployProd": "cypress open --project ../../ --config-file ./core/src/tests/cypress.json --env external=true"
   }
 }

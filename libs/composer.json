@@ -1,26 +1,6 @@
 {
-  "name": "graddoor/graddoor",
-  "description": "description",
-  "minimum-stability": "stable",
-  "license": "proprietary",
-  "authors": [
-    {
-      "name": "Professional",
-      "email": "email@example.com"
+    "require": {
+        "phpmailer/phpmailer": "^6.2",
+        "mpdf/mpdf": "^8.0"
     }
-  ],
-  "require": {
-    "phpunit/phpunit": "9.5.12",
-    "phpmailer/phpmailer": "^6.2",
-    "dompdf/dompdf": "v2.0.0",
-    "ext-json": "*",
-    "ext-zlib": "*",
-    "ext-mbstring": "*",
-    "ext-iconv": "*",
-    "ext-gettext": "*",
-    "ext-simplexml": "*",
-    "ext-mysql_xdevapi": "*",
-    "ext-curl": "*",
-    "ext-apache": "*"
-  }
 }

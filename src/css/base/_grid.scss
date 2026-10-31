@@ -1,0 +1,7 @@
+@if $enable-grid-classes {
+
+  .grid-block {
+    @include grid-block;
+  }
+
+}

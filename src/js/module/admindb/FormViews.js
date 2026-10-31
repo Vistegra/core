@@ -33,9 +33,9 @@ export const FormViews = {
   init() {
     this.relTarget = Object.create(null);
 
-    this.formN  = f.gTNode('#formViewsTmp');
-    this.rowN   = f.gTNode('#formRowTmp');
-    this.paramN = f.gTNode('#formParamTmp');
+    this.formN  = f.gTNode('#FormViesTmp');
+    this.rowN   = f.gTNode('#FormRowTmp');
+    this.paramN = f.gTNode('#FormParamTmp');
 
     this.csv = this.queryResult['csvValues'];
     this.xml = this.prepareDataXml();
@@ -197,8 +197,8 @@ export const FormViews = {
       if (rowIndex === 0) return;
 
       const rowNode = this.rowN.cloneNode(true),
-            id      = row[cell.id],
-            config  = this.xml[id] || false;
+            id = row[cell.id],
+            config = this.xml[id] || false;
 
       rowNode.id = id;
 

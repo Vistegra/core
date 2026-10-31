@@ -65,4 +65,5 @@ app.config.errorHandler = (err, vm, info) => {
 }
 
 app.mount('#catalogForm');
-window.CatalogInstance = app;
+
+export const catalog = {init() {}};

@@ -125,7 +125,7 @@ $class = 'd-none';
       </form>
 
       <section class="container">
-        <? if ($orderId && is_finite($orderId)) {
+        <?php if ($orderId && is_numeric($orderId)) {
           $class = '';
         } else {
           $orderId = '';

@@ -1,14 +1,12 @@
 'use strict';
 
-mocha.setup('bdd');
-const assert = chai.assert;
+import {c} from '../components/const.js';
+
 
 describe('Array', function() {
 
   it('lalala', function() {
-    assert.equal(f.gI('#sdcv'), 'sdcv');
+    assert.equal(c.gI('#sdcv'), 'sdcv');
   });
 
 });
-
-mocha.run();

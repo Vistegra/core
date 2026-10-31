@@ -1,7 +1,9 @@
 <?php ?>
-<footer class="footer">
-  <div>
-    © 2020-2022, made with <i class="pi pi-heart pi-red"></i> by
-    <a href="https://vistegra.by" target="_blank">Vistegra</a>.
+<div class="mx-auto">
+  <div class="container-fluid">
+    <div class="copyright ">
+      © 2020-2021, made with <i class="material-icons">favorite</i> by
+      <a href="" target="_blank">Vistegra</a> for a better web.
+    </div>
   </div>
-</footer>
+</div>

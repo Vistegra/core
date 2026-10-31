@@ -1,0 +1,42 @@
+// Variables
+
+// Body
+//$body-bg:                   $white !default; // Фон
+//$body-color:                $gray-900 !default; // Цвет шрифта
+//$body-text-align:           left !default; // Выравнивание
+
+// Links
+//$link-color:                $blue !default;
+//$link-decoration:           underline !default;
+
+//COLORS
+$color-white:         white; // $white
+$color-black:         black;
+$color-assets:        #00236A;
+$color-text-assets:   #002264;
+$color-text:          #373737;
+$color-gray-light:    #eee;
+$color-blue:          #309dff;
+
+$bg-color:            $color-gray-light;
+$body-bg:             #f8f8fd; // $body-bg: $colorName
+$bg-white:            $white;
+$background-assets:   linear-gradient(90deg, #FFCE51 0%, #FFA945 100%);
+$background-blue:     linear-gradient(180deg, #1D4BA9 0%, #00236A 100%);
+$background-th-table: #dddddd;
+
+$loading-color: $color-blue;
+
+//TYPOGRAPHY
+$font-family-custom:  'Circe', Arial, sans-serif;
+$font-size-base:      16px;
+
+//BORDER
+$border-bottom: 1px solid #4163a1; // $border-bottom: $border-width $border-style $colorName;
+$border-table: 1px solid #eceaea;
+$border-input-focus: 2px solid #4163a1;
+$border-input: 1px solid #ccc;
+$border-bottom-input: 1px solid linear-gradient(180deg, #309DFF 0%, #3498df 10%);
+
+//SHADOW-BLOCK
+$box-shadow:  0px 5px 10px rgba(255, 169, 69, 0.3);

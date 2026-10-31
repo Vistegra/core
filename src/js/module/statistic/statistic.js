@@ -1,10 +1,10 @@
 'use strict';
 
-import './canvasjs.min.js';
+import {CanvasJSModule as CanvasJS} from './canvasjs.min.js';
 
 // TODO click custom btn
-const initCharts = () => {
-  let chart = new CanvasJSModule.Chart("statistic", {
+const initCharts = (dataPoints) => {
+  let chart = new CanvasJS.Chart("statistic", {
     animationEnabled: true,
     theme: "light2",
     title:{
@@ -28,14 +28,12 @@ const initCharts = () => {
   chart.render();
 }
 
-const statistic = {
+export const statistic = {
   default: {},
 
   init() {
     //orders.init();
     initCharts();
-
-    return this;
   },
 
   addOrder(order) {},
@@ -45,7 +43,7 @@ const statistic = {
     if(order) {
       order.importantValue = orders.formatImportant(order.importantValue);
 
-      let title   = 'Закак №' + order['ID'],
+      let title   = 'Закак №' + order['O.ID'],
           content = f.replaceTemplate(orders.tmp, order);
 
       statistic.M.show(title, content);
@@ -70,7 +68,7 @@ const orders = {
   },
 
   setOrders(orders) {
-    orders.map(i => this.data[i['ID']] = i);
+    orders.map(i => this.data[i['O.ID']] = i);
     this.showOrders();
   },
 
@@ -98,5 +96,3 @@ const orders = {
     return value.reduce ? value.reduce((a, i) => { a += `${i.key}:${i.value}`; return a; }, '') : '';
   },
 }
-
-window.StatisticInstance = statistic.init();

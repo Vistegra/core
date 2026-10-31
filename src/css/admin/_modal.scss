@@ -1,0 +1,124 @@
+
+@media only screen and (min-width: 40em) {
+  .modal-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 200;
+    background-color: rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    visibility: hidden;
+    backface-visibility: hidden;
+    transition: opacity 0.6s cubic-bezier(0.55, 0, 0.1, 1), visibility 0.6s cubic-bezier(0.55, 0, 0.1, 1);
+  }
+  .modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+/**
+ * Modal
+ */
+.modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  margin: 0 auto;
+  background-color: #fff;
+  min-width: 30rem;
+  width: auto;
+  max-width: 75rem;
+  min-height: 20rem;
+  height: auto;
+  padding: 0;
+  border-radius: 3px;
+  opacity: 0;
+  overflow-y: auto;
+  visibility: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  backface-visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.55, 0, 0.1, 1);
+}
+.modal .close-modal {
+  border: none;
+  background: transparent;
+  position: absolute;
+  cursor: pointer;
+  right: 15px;
+  opacity: 0;
+  backface-visibility: hidden;
+  transition: opacity 0.3s cubic-bezier(0.55, 0, 0.1, 1), transform 0.3s cubic-bezier(0.55, 0, 0.1, 1);
+  transition-delay: 0.3s;
+}
+.modal .close-modal .close-icon {
+  background-image: url("data:image/svg+xml,%3C%3Fxml version='1.0' encoding='utf-8'%3F%3E%3C!-- Generator: Adobe Illustrator 16.1.0, SVG Export Plug-In . SVG Version: 6.00 Build 0) --%3E%3C!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.1//EN' 'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'%3E%3Csvg version='1.1' id='Layer_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 512 512' enable-background='new 0 0 512 512' xml:space='preserve'%3E%3Cg%3E%3C/g%3E%3Cpolygon points='479.996,95.997 416.004,32.003 256,192.007 95.997,32.003 32.004,95.997 192.008,256 32.004,416.004 95.997,479.996 256,319.992 416.004,479.996 479.996,416.004 319.992,256 '/%3E%3C/svg%3E%0A");
+  width: 15px;
+  height: 15px;
+}
+.modal .close-modal svg {
+  width: 1.75em;
+  height: 1.75em;
+}
+.modal .modal-title {
+  font-size: 1.7rem;
+  font-weight: 600;
+  width: 85%;
+  text-align: center;
+}
+.modal .modal-content {
+  opacity: 0;
+  backface-visibility: hidden;
+  transition: opacity 0.3s cubic-bezier(0.55, 0, 0.1, 1);
+  transition-delay: 0.3s;
+  border: none;
+}
+.modal .modal-button {
+  display: flex;
+  justify-content: space-around;
+  width: 90%;
+  bottom: 1rem;
+}
+.modal.active {
+  visibility: visible;
+  opacity: 1;
+  transform: scale(1);
+}
+.modal.active .modal-content {
+  opacity: 1;
+}
+.modal.active .close-modal {
+  transform: translateY(10px);
+  opacity: 1;
+}
+
+/**
+ * Mobile styling
+ */
+@media only screen and (max-width: 39.9375em) {
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    min-width: 15rem;
+    max-width: 100%;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    transform: scale(1.1);
+  }
+
+  .close-modal {
+    right: 20px !important;
+  }
+}

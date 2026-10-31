@@ -4,43 +4,6 @@ const addSlashes = value => value.replaceAll('\n', '\\n').replaceAll('\r', '\\r'
 const removeSlashes = value => value.replaceAll('\\n', '\n').replaceAll('\\r', '\r');
 
 const changeRowCol = that => !that.tableChanged && (that.tableChanged = true) && that.admindb.enableBtnSave();
-/*
-const colorRenderer = function(instance, td, row, col, prop, value, cellProperties) {
-  Handsontable.renderers.TextRenderer.apply(this, arguments);
-  td.style.backgroundColor = value;
-  td.style.color = '#' + (parseInt(value.substring(1), 16) ^ 0xffffff | 0x1000000).toString(16).substring(1);
-};
-
-
-class ColorEditor extends Handsontable.editors.TextEditor {
-
-  init() {
-    this.picker = document.createElement('input');
-    this.picker.type = 'color';
-
-    this.picker.style.position = 'fixed';
-    this.picker.style.zIndex = '100';
-
-    this.picker.addEventListener('change', () => {
-      this.saveValue(this.picker.value);
-      //this.picker.remove();
-    });
-  }
-
-  focus() {
-    super.focus();
-    this.picker.value = this.originalValue;
-    this.hot.rootElement.appendChild(this.picker);
-    this.picker.focus();
-  }
-}
-
-window.Handsontable.cellTypes.registerCellType('color-picker', {
-  renderer: colorRenderer,
-  editor: Handsontable.editors.TextEditor,
-})*/
-
-
 
 export const handson = {
   optionCommon: {
@@ -124,14 +87,11 @@ export const handson = {
       if (!cell) return res;
 
       res.readOnly = /^(c_|d_)/i.test(cell);
-      if (['+', '-'].includes(cell)) {
+      if (cell === '+' || cell === '-') {
         res.type = 'checkbox';
         res.checkedTemplate = '+';
         res.uncheckedTemplate = '-';
       }
-      /*else if (/#([a-fA-F]|\d){3,6}/.test(cell)) {
-        res.type = 'color-picker';
-      }*/
       else res.type = isFinite(cell.replace(',', '.')) ? 'numeric' : 'text';
 
       return res;

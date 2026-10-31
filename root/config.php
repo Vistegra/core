@@ -1,50 +1,42 @@
 <?php
 
-/**
- * Все пути относительно index.php.
- */
-
 $publicConfig = [
-  'PROJECT_TITLE' => 'PROJECT_TITLE',
-  /** Любое значение включает режим отладки */
+  'PROJECT_TITLE' => 'My project',
+  // Любое значение включает режим отладки
   //'DEBUG' => true,
-
-  /** Почта */
   //'MAIL_TARGET_DEBUG' => 'trydim@mail.ru',
-  //'MAIL_SMTP' => true,
-  //'MAIL_PORT' => 465,
-  //'MAIL_HOST' => 'smtp.yandex.ru';
-  //'MAIL_FROM' => 'noreplycalcby@yandex.ru';
-  //'MAIL_PASSWORD' => '638ch1';
 
-  /** Расскоментировать, если требуется изменить путь */
-  //'PATH_CSS' => 'public/css/',
-  //'PATH_IMG' => 'public/images/',
-  //'PATH_JS'  => 'public/js/',
+  'PATH_CSS' => SITE_PATH . 'public/css/',
+  'PATH_IMG' => SITE_PATH . 'public/images/',
+  'PATH_JS'  => SITE_PATH . 'public/js/',
 
   /** Использовать БД для авторизации */
-  //'USE_DATABASE' => true,
+  'USE_DATABASE' => true,
 
   /** Возможность прямого редактирования БД из админки */
-  //'CHANGE_DATABASE' => false,
+  'CHANGE_DATABASE' => false,
 
-  /** Режим разработчика для csv редактора (true/false*) */
-  //'CSV_DEVELOP' => false,
-  /** Описание csv файлов */
-  //'PATH_LEGEND' => 'public/views/legend.php',
-  /** Папка csv файлов */
-  //'PATH_CSV'    => 'shared/csv/',
+  /** Любое значение отключает защитный режим */
+  //'CSV_DEVELOP' => true,
+  /** Папка с csv файлами */
+  'PATH_LEGEND'       => ABS_SITE_PATH . 'public/views/legend.php',
+  'PATH_CSV'          => ABS_SITE_PATH . 'shared/csv/',
+  'CSV_STRING_LENGTH' => '1000',
+  'CSV_DELIMITER'     => ';',
 
-  /** Количество символов в csv */
-  //'CSV_STRING_LENGTH' => '1000',
-  /** Разделитель в csv */
-  //'CSV_DELIMITER'     => ';',
+  /** Отображать таблицы в меню */
+  'DB_TABLE_IN_SIDEMENU' => true,
 
   /** Сохранять пользовательские расчеты */
-  //'USERS_ORDERS' => false,
+  'USERS_ORDERS' => true,
 
-  /** Вход только с регистрацией. Определяется в зависимости от доступной страницы. */
-  'ONLY_LOGIN' => true,
+  /** Домашняя страница - страница на которую переходит ПОСЛЕ регистрации
+   * По умолчанию PUBLIC_PAGE
+   * Если нету, тогда на первую открытую ACCESS_MENU
+   */
+  //'HOME_PAGE' => 'catalog',
+
+  //'ONLY_LOGIN' => true,
   /** Страница для доступа без регистрации: файл/файлы с таким именем должен быть в public/views/
    * Если пользователь не зарегистрирован, переход на эту страницу.
    * (позже) или через запятую если несколько страниц.
@@ -54,36 +46,26 @@ $publicConfig = [
 
   /** Какую библиотеку использовать (добавить в настройки) mpdf, html2pdf */
   // внутри битрикс не доступно mpdf
-  //'PDF_LIBRARY' => 'mpdf',
-  /** PDF альбомный/портретный */
-  //'PDF_ORIENTATION' => 'L',
+  'PDF_LIBRARY' => 'mpdf',
 
-  /** Пункты меню какие показывать и последовательность (по умолчанию все страницы)
-  'admindb', 'calendar', 'catalog', 'customers', 'dealers', 'orders', 'fileManager', 'statistic', 'users'
-  админ-ние   календарь   каталог    клиенты      дилеры     заказы    ФМ             статистика   мен-ры
-  hr - черта в меню
-  */
-  'ACCESS_MENU' => ['admindb', 'calendar', 'catalog', 'customers', 'dealers', 'orders', 'users', 'customPage'],
-
-  /**
-   * Просмотр заказов дилеров
+  /** Пункты меню какие показывать и последовательность
+  'orders', 'calendar', 'customers', 'users', 'statistic', 'admindb', 'catalog', 'fileManager'
+  заказы     календарь   клиенты   менеджеры статистика администрирование каталог файловый менеджер
+  options - настройки
    */
-  'DEALERS_ORDERS_SHOW' => true,
+  'ACCESS_MENU' => ['orders', 'calendar', 'customers', 'users', 'statistic', 'admindb', 'fileManager'],
 
   /** Папка по умолчанию для файлового менеджера */
-  // 'SHARE_PATH' => 'public/images/',
-
-  /** Контент редактор */
-  // 'USE_CONTENT_EDITOR' => true,
+  'SHARE_DIR' => 'public/images/',
 ];
 
 //----------------------------------------------------------------------------------------------------------------------
 // DB connect/config
 $dbConfig = [
   'dbHost'     => 'localhost',
-  'dbName'     => 'cms',
+  'dbName'     => 'dbName',
   /*'dbUsername' => 'dbUser',
-  'dbPass'     => 'WHZM4JpunONGycm'*/
+  'dbPass'     => 'WHZM4JpunONGycmf'*/
   'dbUsername' => 'root',
   'dbPass'     => ''
 ];

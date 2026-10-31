@@ -1,59 +1,50 @@
-<?php if (!defined('MAIN_ACCESS')) die('access denied!');
+<?php if ( !defined('MAIN_ACCESS')) die('access denied!');
 
 /**
- * @var Main $this - global
+ * @var boolean $wrongPass - from controller
+ * @var string $login - from Request
+ * @var string $pass - from Request
  */
 
-$siteLink   = $this->url->getUri();
-$actionLink = $this->url->getUri() . 'index.php';
-$login      = $_REQUEST['login'] ?? '';
-$pass       = $_REQUEST['password'] ?? '';
-$wrongString = $this->checkStatus('error') ? '<div class="alert alert-danger text-center" role="alert"><i class="pi pi-info-circle pi-red me-1"></i>Неправильный логин или пароль</div><br>' : '';
+!isset($pageTarget) && $pageTarget = '';
+$actionLink = 'index.php';
+$wrongString = $wrongPass ? '<div class="notification-container error" role="alert">Неправильный логин или пароль</div><br>' : '';
 
-$publicLink = !$this->getCmsParam(VC::ONLY_LOGIN) && PUBLIC_PAGE
-  ? '<a class="text-primary" href="' . $siteLink . '">Открытая страница</a>' : '';
-
-$field['pageTitle'] = $this->getCmsParam('PROJECT_TITLE');
+$publicLink = !ONLY_LOGIN && PUBLIC_PAGE ? '<a href="/' . PUBLIC_PAGE . '">Открытая страница</a>' : '';
 
 /* Исользовать global что бы в базовом шаблоне не использовать структуру (надо будет инструкцию потом написать) */
 $field['global'] = <<<global
-<main class="position-fixed h-100 w-100">
-  <section class="content-center h-100">
-    <div class="authincation-content auth-form col-md-5">
-      <h4 class="text-center mb-4"><i class="pi pi-user"></i> Авторизация</h4>
-      $wrongString
-      <form action="$actionLink" method="POST" id="authForm">
-        <div class="form-group">
-          <label><strong>Логин</strong></label>
-          <input name="login" type="text" class="form-control" value="$login">
-        </div>
-        <div class="form-group mt-1 mb-2">
-          <label><strong>Пароль</strong></label>
-          <input name="password" type="password" class="form-control" value="">
-        </div>
-        <div class="form-row d-flex justify-content-between mt-4 mb-2 d-none">
-          <div class="form-group">
-            <div class="form-check ml-2">
-              <input class="form-check-input" type="checkbox" name="remember" id="basic_checkbox_1">
-              <label class="form-check-label" for="basic_checkbox_1">Запомнить меня</label>
+<main class="container-fluid mx-auto">
+  <section class="d-flex justify-content-center align-items-center" style="height: 100vh">
+    <div class="col-xl-4 col-lg-6 col-md-10 mx-auto mt-5">
+      <form id="authForm" action="$actionLink" method="POST" class="m-1">
+        <div class="card">
+          <div class="card-body">
+            <div class="form-header bg-blue">
+              <h3 class="font-weight-500 my-2 py-1"><i class="fas fa-user"></i> Авторизация:</h3>
             </div>
-          </div>
-          <div class="form-group">
-            <a href="forgot">Забыли пароль?</a>
+           
+            <div class="md-form mb-5">
+              <input name="login" type="text" id="orangeForm-name" class="form-control" value="$login" placeholder="Логин" required"> 
+            </div>
+
+            <div class="md-form mb-5">
+              <input name="password" type="password" id="orangeForm-pass" class="form-control" value="$pass" placeholder="Пароль" required">
+            </div>
+
+            <div class="text-center">
+              <button class="btn btn-info btn-lg">Войти</button>
+            </div>
+                        
+            <input name="mode" type="hidden" value="auth">
+            <input name="authAction" type="hidden" value="login">
+            <input name="clientPageTarget" type="hidden" value="$pageTarget">
+            $publicLink
           </div>
         </div>
-
-        <div class="text-center">
-          <button type="submit" class="btn btn-primary btn-block" onclick="this.classList.add('loading-st1')">Подтвердить</button>
-        </div>
-
-        <input name="mode" type="hidden" value="auth">
-        <input name="cmsAction" type="hidden" value="login">
       </form>
-      <div class="new-account mt-3">
-        <p>$publicLink</p>
-      </div>
-
+      <br>
+      $wrongString
     </div>
   </section>
 </main>

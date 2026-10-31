@@ -12,7 +12,7 @@ module.exports = env => {
     watch: dev, // слежка за изменениями файлов
     watchOptions: {aggregateTimeout: 300}, // задержка оценки изменений в мс
     entry       : {
-      main: './js/main.ts',
+      main: './js/main.js',
       src: './js/src.js',
     },
 
@@ -46,10 +46,10 @@ module.exports = env => {
       new VueLoaderPlugin(),
 
       /*new HtmlWebpackPlugin({
-       title: 'title',
-       filename: 'view/content.php',
-       template: `content.php`,
-       }),*/
+        title: 'title',
+        filename: 'view/content.php',
+        template: `content.php`,
+      }),*/
 
       new webpack.DefinePlugin({
         // Drop Options API from bundle
@@ -62,7 +62,6 @@ module.exports = env => {
         javascript: {commonjsMagicComments: true},
       },
       rules: [
-        getTypescriptRules(),
         getVueRules(),
         getScssRules(dev),
         getCssRules(dev),
@@ -84,21 +83,8 @@ module.exports = env => {
  * asset - автоматический выбор от размера по умолчанию 8к */
 
 /*const generator = {
- publicPath: '../', // папка относительно собранных файлов.
- }*/
-
-/**
- * Typescript
- * @return {object}
- */
-const getTypescriptRules = () => ({
-  test  : /\.ts$/,
-  loader: 'ts-loader',
-  exclude: /node_modules/,
-  options: {
-    appendTsSuffixTo: [/\.vue$/]
-  },
-});
+  publicPath: '../', // папка относительно собранных файлов.
+}*/
 
 /**
  * Vue

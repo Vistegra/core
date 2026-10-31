@@ -1,45 +1,52 @@
-<?php if (!defined('MAIN_ACCESS')) die('access denied!');
+<?php if ( !defined('MAIN_ACCESS')) die('access denied!');
 
 /**
- * @var Main $main - global
+ * Роутер ядра (восстановлен под PHP 8.4).
+ *
+ * ?mode=...            - ajax-запросы (auth, DB, docs, FM, setting) -> model/main.php
+ * /                    - открытая страница (калькулятор)
+ * /login/              - вход в админку
+ * /admindb/, /orders/, /customers/, /users/, /calendar/, /setting/ ... - разделы админки
+ *
+ * @var $main - global
  */
 
-// todo пропускать запросы к файлам. (почему не все файлы?)
-$uri = str_replace('?' . $_SERVER['QUERY_STRING'], '', $_SERVER['REQUEST_URI']);
-preg_match("/\..+$/i", $uri, $match);
-if (!empty($match) && !in_array($match[0], ['.php', '.csv'])) die();
-unset($uri, $match);
+require_once basename( __DIR__ ) . '/cmsSetting.php';
 
-require __DIR__ . '/cmsSetting.php';
-
-if ($mode = $main->getCmsParam('mode')) {
-  $componentPath = __DIR__ . '/model/';
-  extract($_REQUEST);
-  $cmsAction = $dbAction ?? $cmsAction ?? 'noAction';
-
-  if (DEBUG || in_array($mode, ['auth', 'docs']) || $main->checkAction($cmsAction)) {
-    try {
-      switch ($mode) {
-        case 'auth': require $componentPath . 'auth.php'; break;
-        case 'load':
-        case 'DB':      require $componentPath . 'db.php'; break;
-        case 'docs':    require $componentPath . 'docs.php'; break;
-        case 'FM':      require $componentPath . 'fileManager.php'; break;
-        case 'setting': require $componentPath . 'setting.php'; break;
-      }
-    } catch (Exception $e) {
-      $main->response->setContent($e->getMessage());
-    }
-  } else $main->response->setContent(['error' => 'Auth no passing!']);
+if (isset($_REQUEST['mode'])) {
+  require 'model/main.php';
 } else {
-  $main->beforeController();
+  $html = '';
 
-  $pathController = CORE . 'controller/c_' . $main->url->getRoute() . '.php';
-  if (file_exists($pathController)) require $pathController;
-  else $main->initDefaultController();
+  $main->setTarget($_GET);
+  $target = $main->getTarget();
 
-  unset($pathController, $field);
+  // Открытая страница доступна по /, /public/ и /calculator/
+  if ($target === PUBLIC_PAGE || $target === 'index.php') $target = 'public';
+
+  // Если уже авторизован и открыл /login/ - отправить на главную
+  $main->checkAuth($target === 'login' ? '' : $target);
+  $main->applyAuth($target);
+  $main->setAccount();
+
+  $dbTables = $main->getBaseTable() ?? [];
+  $pageTarget = $_SESSION['target'] ?? '';
+  $pageTarget === 'login' && $pageTarget = '';
+
+  if ($target === 'public') {
+    require CORE . 'controller/c_public.php';
+  } else if ($target === 'login'
+             || ($main->availablePage($target)
+                 && file_exists(CORE . "controller/c_$target.php")
+                 && file_exists(VIEW . "$target.php"))) {
+    $pathTarget = VIEW . "$target.php";
+    require CORE . "controller/c_$target.php";
+  } else {
+    http_response_code(404);
+    $html = template('404');
+  }
+
+  echo $html;
 }
 
-$main->response->send();
-unset($authStatus, $dbContent, $main);
+unset($target, $pathTarget, $html, $authStatus, $dbContent, $field, $orderId, $main);

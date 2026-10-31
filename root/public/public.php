@@ -1,24 +1,6 @@
 <?php
 
-/**
- * @var Main $main - global
- *
- * @var array $field
- * @var string $field['pageTitle']
- * @var string $field['headContent']
- * @var string[] $field['cssLinks'] - использовать с , для css админки добавить CORE_CSS
- * @var string[] $field['jsLinks'] - относительно /public/js/, для js админки добавить CORE_JS
- * @var string $field['pageHeader'] - По умолчанию пусто.
- * @var string $field['pageFooter'] - По умолчанию плашка.
- *
- * @var string $publicCss
- * @var string $publicJs
- */
-$field = $field ?? [
-  'cssLinks' => [],
-  'jsLinks'  => [],
-];
-
+if (!isset($field)) $field = [];
 /*// Прайс
 $param = [
   'id'    => 'id-product',
@@ -28,24 +10,24 @@ $param = [
   'value' => ['Стоимость, руб.', 'float'],
 ];
 
-$price = loadCSV($param, 'price.csv');
+$price = loadCVS($param, 'price.csv');
 
 $price = json_encode(array_filter($price, function ($i) {
   return boolval(strlen($i['id']));
 }));*/
 
+$field = [];
 
-$field['cssLinks'][] = $publicCss . 'styles.css';
-$field['jsLinks'][] = $publicJs . 'calculator.min.js';
-//$field['pageHeader'] = '';
+$field['headContent'] = '<meta name="Public"><meta name="description" content="Public">';
+$field['cssLinks']   = [PATH_CSS . 'styles.css'];
+$field['jsLinks']    = [PATH_JS . 'calculator.min.js'];
+$field['pageTitle']  = 'Public';
 $field['pageFooter'] = '';
+//$field['pageHeader'] = '';
 
 /*$dbContent = "<input type='hidden' id='dataPrice' value='$price'>" .
              "<input type='hidden' id='dataConfig' value='$config'>";*/
-
-// Настройки
-// $dbContent .= $main->getSettings('json', true);
-
+/*
 // Курс
-//$dbContent .= $main->getCourse();
-
+$dbContent .= $main->getCourse();
+*/

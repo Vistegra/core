@@ -1,13 +1,15 @@
-<?php if (!defined('MAIN_ACCESS')) die('access denied!');
+<?php  if (!defined('MAIN_ACCESS')) die('access denied!');
 
 /**
- * @var Main $main - global
+ * @var string $pathTarget
  */
 
 //Allowed extensions
 /*$config = [
   'extensions_for_editor' => array('ab', 'txt', 'php', 'js', 'tpl', 'html', 'htm', 'css', 'text', 'json', 'lng', 'xml', 'ini', 'sql')
 ];*/
+
+define('ROOT', SHARE_DIR);
 
 function tree($path) {
   if (stream_resolve_include_path($path)) {
@@ -49,11 +51,7 @@ $field = [
 	'pageTitle' => 'File manager',
 ];
 
-$field['cssLinks'] = [CORE_CSS . 'module/fileManager.css?ver=fda1c25660'];
-$field['jsLinks'] = [CORE_JS . 'module/fileManager.js?ver=45223fc11b'];
+$field['cssLinks'] = [CORE_CSS . 'module/fileManager.css'];
 
-$main->setControllerField($field)->fireHook(VC::HOOKS_FILE_MANAGER_TEMPLATE, $main);
-ob_start();
-include $main->url->getRoutePath();
-$field['content'] = ob_get_clean();
-$main->response->setContent(template('base', $field));
+require $pathTarget;
+$html = template('base', $field);

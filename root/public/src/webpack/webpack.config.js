@@ -2,8 +2,7 @@ const path    = require('path'),
       webpack = require('webpack'),
       { VueLoaderPlugin } = require('vue-loader');
 
-const HtmlWebpackPlugin = require("html-webpack-plugin"),
-      MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 /**
  * Шрифты
@@ -38,7 +37,6 @@ module.exports = env => {
 
     output : {
       path         : getOutputPath(),
-      publicPath   : '/',
       filename     : 'js/[name].js',
       chunkFilename: 'js/[name].chunk.js',
       scriptType   : 'module',
@@ -46,8 +44,6 @@ module.exports = env => {
       libraryTarget: 'module',
     },
     resolve: {
-      /** Расширения для React */
-      extensions: ['*', '.js', '.jsx'],
       alias: {
         vue: dev ? 'vue/dist/vue.esm-bundler.js' : 'vue/dist/vue.esm-browser.prod.js',
       }
@@ -65,14 +61,12 @@ module.exports = env => {
       }),
       new VueLoaderPlugin(),
 
-      /** Шаблон для React */
-      new HtmlWebpackPlugin({
-        /*title: 'title',
-        filename: 'view/index.html',*/
-        template: 'template/index.html',
-      }),
+      /*new HtmlWebpackPlugin({
+        title: 'title',
+        filename: 'view/content.php',
+        template: `content.php`,
+      }),*/
 
-      /** Глобальные для Vue */
       new webpack.DefinePlugin({
         // Drop Options API from bundle
         __VUE_OPTIONS_API__  : 'true',
@@ -81,23 +75,13 @@ module.exports = env => {
     ],
     module: {
       rules: [
-        getReactRules(),
         getVueRules(),
         getScssRules(),
         getCssRules(),
         getImageRules(),
         getSVGRules(),
         getFontsRules(),
-      ],
-    },
-
-    devServer: {
-      static: {
-        directory: path.join(__dirname, '/'),
-      },
-      port: 3000,
-      hot: false,
-      open: true,
+      ]
     },
   };
 };
@@ -110,23 +94,6 @@ module.exports = env => {
  * asset/inline - url-loader - inline базе64
  * asset/source - raw-loader - ?
  * asset - автоматический выбор от размера по умолчанию 8к */
-
-/**
- * React
- * @return {object}
- */
-const getReactRules = () => ({
-  test: /\.(jsx)$/,
-  //test: /\.(js|jsx)$/,
-  exclude: /(node_modules|bower_components)/,
-  loader: "babel-loader",
-  options: {
-    presets: [
-      "@babel/preset-env",
-      ["@babel/preset-react", {"runtime": "automatic"}],
-    ]
-  },
-});
 
 /**
  * Vue

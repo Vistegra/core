@@ -1,7 +1,8 @@
-<?php if (!defined('MAIN_ACCESS')) die('access denied!');
+<?php  if ( !defined('MAIN_ACCESS')) die('access denied!');
 
 /**
- * @var Main $main - global
+ * @var object $main
+ * @var string $pathTarget
  */
 
 $db = $main->getDB();
@@ -16,15 +17,13 @@ function prepareData($data) {
 
 $field = [
   'pageTitle' => 'Каталог',
-  'sideRight'     => '',
-  'pageFooter'    => '',
   'footerContent' => '',
-  'cssLinks'  => [CORE_CSS . 'module/catalog.css?ver=8cdf94ab40'],
-  'jsLinks'   => [CORE_JS . 'module/catalog.js?ver=73262afc8e'],
+  'sideRight' => '',
+  'cssLinks'      => [CORE_CSS . 'module/catalog.css'],
 ];
 
 // Загрузка настройки столбцов
-$setting = $main->getSettings();
+$setting = getSettingFile();
 $value = $setting['optionsColumn'] ?? 'ID,C.name,E.name,activity,sort,lastEditDate';
 $field['footerContent'] .= "<input type='hidden' id='elementsColumn' value='$value'>";
 $value = $setting['elementsColumn'] ?? 'ID,images,name,unitId,activity,sort,lastEditDate,moneyInputId,inputPrice,moneyOutputId,outputPercent,outputPrice';
@@ -41,7 +40,7 @@ $value = $db->getMoney();
 $field['footerContent'] .= "<input type='hidden' id='dataMoney' value='" . prepareData($value) . "'>";
 
 // Все свойства
-$value = $main->getSettings(VC::OPTION_PROPERTIES);
+$value = $main->getSettings('propertySetting');
 foreach ($db->getTables('prop') as $table) {
   $name = isset($value[$table['dbTable']]) ? $value[$table['dbTable']]['name'] : $table['name'];
 
@@ -57,8 +56,7 @@ $field['footerContent'] .= "<input type='hidden' id='dataProperties' value='" . 
 
 unset($value, $propSetting, $mess);
 
-$main->setControllerField($field)->fireHook(VC::HOOKS_CATALOG_TEMPLATE, $main);
 ob_start();
-require $main->url->getRoutePath();
+include $pathTarget;
 $field['content'] = ob_get_clean();
-$main->response->setContent(template('base', $field));
+$html = template('base', $field);

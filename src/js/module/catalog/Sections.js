@@ -104,9 +104,7 @@ export const methods = {
   },
 
   getSectionSelectedId() {
-    const id = Object.keys(this.sectionSelected || []);
-
-    return id.length === 1 ? +id[0] : false;
+    return +(this.sectionSelected && Object.keys(this.sectionSelected)[0]) || 0;
   },
   // Events function
   //--------------------------------------------------------------------------------------------------------------------
@@ -115,10 +113,7 @@ export const methods = {
   },
 
   openSection() {
-    const id = this.getSectionSelectedId();
-    if (!id) return;
-
-    this.queryParam.sectionId = id;
+    this.queryParam.sectionId = this.getSectionSelectedId();
     this.elementLoaded = 0;
     this.options = [];
     this.loadElements();
@@ -130,9 +125,6 @@ export const methods = {
 
   createSection() {
     const id = this.getSectionSelectedId();
-
-    if (id === false) { f.showMsg('Выберите раздел', 'error'); return; }
-
     this.queryParam.dbAction = 'createSection';
 
     this.section.name = '';
@@ -147,12 +139,10 @@ export const methods = {
     this.reloadAction = reload(this);
   },
   changeSection() {
-    const id = this.getSectionSelectedId();
+    if (!this.getSectionSelectedId()) { return; }
 
-    if (id === false) { f.showMsg('Выберите раздел', 'error'); return; }
-    if (id === 0) { f.showMsg('Корневой раздел изменить нельзя', 'error'); return; }
-
-    const section = Object.values(this.sections).find(s => s.key === id);
+    const id = this.getSectionSelectedId(),
+          section = Object.values(this.sections).find(s => s.key === id);
 
     this.queryParam.dbAction = 'changeSection';
     this.queryParam.sectionId = id;
@@ -163,16 +153,12 @@ export const methods = {
     this.section.activity = !!section.activity;
 
     this.sectionModal.title = 'Редактировать раздел';
-    this.sectionModal.codeChange = true;
     this.sectionModal.display = true;
 
     this.reloadAction = reload(this);
   },
   deleteSection() {
-    const id = this.getSectionSelectedId();
-
-    if (id === false) { f.showMsg('Выберите раздел', 'error'); return; }
-    if (id === 0) { f.showMsg('Корневой раздел удалить нельзя', 'error'); return; }
+    if (!this.getSectionSelectedId()) { return; }
 
     this.queryParam.dbAction  = 'deleteSection';
     this.queryParam.sectionId = this.getSectionSelectedId();
@@ -189,15 +175,11 @@ export const methods = {
 
   sectionConfirm() {
     this.sectionLoading = true;
-    this.queryParam = {
-      ...this.queryParam,
-      section: JSON.stringify(this.section),
-    };
+    this.queryParam = Object.assign(this.queryParam, this.section);
     this.query();
     this.sectionModal.display = false;
-    this.sectionLoading = false;
   },
   sectionCancel() {
     this.sectionModal.display = false;
-  },
+  }
 }

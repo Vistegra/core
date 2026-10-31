@@ -1,23 +1,28 @@
 <?php
 
-/**
- * @param string $class
- */
-function cmsAutoloader(string $class) {
-  $path = str_replace('\\', DIRECTORY_SEPARATOR, __DIR__ . '/classes/' . $class . '.php');
-  if (file_exists($path)) require_once $path;
+require_once __DIR__ . '/funcLegacy.php';
+
+function cmsAutoloader(string $class): void
+{
+  // Public classes
+  $path = ABS_SITE_PATH . 'public/model/classes/' . $class . '.php';
+  $path = str_replace('\\', DIRECTORY_SEPARATOR, $path);
+  if (file_exists($path)) {
+    require_once $path;
+  }
+
+  // Core classes
+  else {
+    $path = __DIR__ . '/classes/' . $class . '.php';
+    $path = str_replace('\\', DIRECTORY_SEPARATOR, $path);
+    if (file_exists($path)) require_once $path;
+  }
 }
 
-/**
- *
- * @param $number
- * @param $reportValue
- * @return false|string
- */
-function addCpNumber($number, $reportValue) {
+function addCpNumber($number, string $importantValue): bool|string
+{
   global $main;
-  $reportValue = $main->fireHook('addCpNumber', $number, $reportValue);
-  return gzcompress($reportValue, 9);
+  return $main->fireHook(VC::HOOKS_SAVE_ORDER, $number, $importantValue);
 }
 
 /**
@@ -30,7 +35,7 @@ function addCssLink(string $cssLink) {
   global $main;
 
   if ($main instanceof Main) {
-    $cssLink = $main->url->getUri() . ltrim($cssLink, '/');
+    $cssLink = $main->url->getUri(true) . ltrim($cssLink, '/');
     return $main->addControllerField(VC::BASE_CSS_LINKS, $cssLink);
   }
 
@@ -50,7 +55,7 @@ function addJsLink(string $jsLink, string $position = 'after') {
   global $main;
 
   if ($main instanceof Main) {
-    $jsLink = $main->url->getUri() . ltrim($jsLink, '/');
+    $jsLink = $main->url->getUri(true) . ltrim($jsLink, '/');
     return $main->addControllerField(VC::BASE_JS_LINKS, $jsLink, $position);
   }
 
@@ -59,20 +64,15 @@ function addJsLink(string $jsLink, string $position = 'after') {
 
 /**
  * Alias for $main->addHook();
- * @param $hookName - string
- * @param $callable - func
  */
-function addHook($hookName, $callable) {
+function addHook(string $hookName, callable $callable): void
+{
   global $main;
-  if ($main instanceof Main) $main->addHook($hookName, $callable);
+  if (is_object($main) && method_exists($main, 'addHook')) $main->addHook($hookName, $callable);
+  else if (is_object($main) && method_exists($main, 'addAction')) $main->addAction($hookName, $callable);
 }
 
-/**
- *
- * @param mixed $var
- * @return bool
- */
-function boolValue($var): bool {
+function boolValue(mixed $var): bool {
   if (is_bool($var)) return $var;
   if (is_string($var)) {
     return !(empty($var) || $var === '-' || $var === 'false');
@@ -84,24 +84,18 @@ function boolValue($var): bool {
 }
 
 /**
- * for param by load csv
- * @param $type
- * @param $value
- * @return false|float
+ * For param by load csv
  */
-function convert($type, $value) {
+function csvTypeConvert(string $type, mixed $value): float|bool
+{
   switch ($type) {
-    case 'int':
-    case 'integer':
-      return floor((integer)$value);
-    case 'float':
-    case 'double':
-      return floatval(str_replace(',', '.', $value));
+    default: return $value;
+    case 'int': case 'integer': return intval($value);
+    case 'float': case 'double': return floatval(str_replace(',', '.', $value));
   }
-  return $value;
 }
 
-function convertToArray($value): array {
+function convertToArray(mixed $value): array {
   if (is_array($value)) return $value;
   if (is_string($value)) {
     return array_map(function ($item) { return trim($item); }, explode(',', $value));
@@ -109,57 +103,45 @@ function convertToArray($value): array {
   return [];
 }
 
-/**
- * @param string $file1
- * @param string $file2
- * @return bool
- */
-function compareFiles(string $file1, string $file2): bool {
-  return file_exists($file1) && file_exists($file2)
-         && md5_file($file1) === md5_file($file2);
+if (!function_exists('compareFiles')) {
+  function compareFiles(string $file1, string $file2): bool {
+    return file_exists($file1) && file_exists($file2)
+      && md5_file($file1) === md5_file($file2);
+  }
 }
 
-/**
- * @param $var
- * @param bool $die
- */
-function de($var, bool $die = true) {
-  echo '<pre>';
-  var_dump($var);
-  echo '</pre>';
-  if ($die) die();
+if (!function_exists('de')) {
+  function de($var, bool $die = true): void
+  {
+    echo '<pre>';
+    var_dump($var);
+    echo '</pre>';
+    if ($die) die();
+  }
 }
 
-/**
- * @param string[]|string $hayStack
- * @param string $search
- * @return bool
- */
-function includes($hayStack, string $search): bool {
+if (!function_exists('def')) {
+  function def($var, bool $die = true): void
+  {
+    if (is_array($var) || is_object($var)) $var = json_encode($var);
+    file_put_contents(ABS_SITE_PATH . 'shared/debug.json', $var);
+    if ($die) die();
+  }
+}
+
+function includes(array|string $hayStack, string $search, bool $strict = false): bool {
   if (is_array($hayStack)) {
     foreach ($hayStack as $item) {
-      if (includes($item, $search)) return true;
+      if (includes($item, $search, $strict)) return true;
     }
   } else {
-    return stripos($hayStack, $search) !== false;
+    return $strict ? $hayStack === $search
+                   : stripos($hayStack, $search) !== false;
   }
   return false;
 }
 
-/**
- * @param $word
- *
- * @return false|float|int
- */
-function getLimitLevenshtein($word) {
-  if (iconv_strlen($word) <= 3) {
-    return iconv_strlen($word);
-  }
-
-  return ceil(iconv_strlen($word) / 2);
-}
-
-function getPageAsString($data): string {
+function getPageAsString(array $data): string {
   $id = 'wrapCalcNode' . uniqid();
   $initJs = $data['initJs'];
   unset($data['initJs']);
@@ -172,104 +154,81 @@ function getPageAsString($data): string {
 }
 
 /**
- * translate text
- * @param string $str
- * @return string
+ * Translate text
  */
 function gTxt(string $str): string {
+  global $main;
   static $txt;
+
   if (!$txt) {
-    $txt = include ABS_SITE_PATH . 'lang/dictionary.php';
+    $txt = $main->getDictionary();
   }
+
   return $txt[$str] ?? $str;
 }
 
 /**
- * translate dataBase text
- * @param string $db
- * @param string $str
- * @return string
+ * Translate dataBase text
  */
 function gTxtDB(string $db, string $str): string {
+  global $main;
   static $txt;
+
   if (!$txt) {
-    $txt = include ABS_SITE_PATH . 'lang/dbDictionary.php';
+    $txt = $main->getDbDictionary();
   }
+
   return $txt[$db][$str] ?? $str;
 }
 
+
 /**
- * Find index of Levelshtein
+ * Find index of Levenshtein
  *
- * @param string - when search?
- * @param array - what search? arr of string
- * @param string - in charset in csv (autodetect)
- * @param bool - if true return word, default return index position
+ * @param string $input - when searched?
+ * @param array  $row   - what search? arr of string
+ * @param bool   $index - if true return word, default return index position
  *
- * @return integer or string - int: return index of position keyword in array
+ * @return int|string - int: return index of position keyword in array
  */
-function findWord($input, $cell, $inCharset = 'windows-1251', $index = false) {
-  $input = mb_strtolower($input, 'UTF-8');
-  $shortest = -1;
+function findWord(string $input, array $row, bool $index = false, bool $strict = false): int|string
+{
   $gc = false;
-  $nearest_word = null;
-  $limit = getLimitLevenshtein($input); // Порог прохождения
-  foreach ($cell as $key => $item) {
-    $word = trim(mb_strtolower(iconv($inCharset, 'UTF-8', $item), 'UTF-8'));
+  $shortest = -1;
+  $nearestWord = null;
+
+  $input = mb_strtolower($input, 'UTF-8');
+  $limit = iconv_strlen($input);
+  $limit = $limit <= 3 ? $limit : ceil($limit / 2); // Pass level Limit
+
+  foreach ($row as $key => $cell) {
+    $word = trim(mb_strtolower($cell, 'UTF-8'));
     $lev = levenshtein($input, $word);
+
     if ($lev === 0) {
       $gc = $key;
-      $nearest_word = $word;
+      $nearestWord = $word;
       break;
     }
-    if ($lev < $limit && ($lev <= $shortest || $shortest < 0)) {
+    if (!$strict && $lev < $limit && ($lev <= $shortest || $shortest < 0)) {
       $gc = $key;
       $shortest = $lev;
-      $nearest_word = $word;
+      $nearestWord = $word;
     }
   }
-  if ($index) {
-    return $nearest_word;
-  }
+
+  if ($index) return $nearestWord;
 
   return $gc;
 }
 
 /**
- * Find key
- *
- * @param string - when search?
- * @param array - what search? array of keys
- *
- * @return string - keys or false
- */
-function findKey($cell, $input) {
-  $count = count($input); // теперь всегда 1
-  $input = '/(' . implode('|', $input) . ')/i';
-  foreach ($cell as $key => $item) {
-    if (preg_match_all($input, $key) === $count) {
-      return $key;
-    }
-  }
-
-  return false;
-}
-
-/**
  * Find csv file
- * @param string $filename
- * @return string
  */
 function findCsvFile(string $filename): string {
   global $main;
 
-  // Direct path
-  if (file_exists($filename)) return $filename;
-  // Dealer path
-  $path = $main->getCmsParam(VC::CSV_PATH) . $filename;
-  if (file_exists($path)) return $path;
-  // Main path
-  $path = $main->getCmsParam(VC::CSV_PATH) . $filename;
+  $path = ABS_SITE_PATH . 'shared/csv/' . $filename; // Main path
   if (file_exists($path)) return $path;
 
   return '';
@@ -277,10 +236,6 @@ function findCsvFile(string $filename): string {
 
 /**
  * Determines whether a string can be considered JSON or not.
- *
- * @param string $value value to determine json of.
- *
- * @return boolean
  */
 function isJSON(string $value): bool {
   return (
@@ -292,131 +247,103 @@ function isJSON(string $value): bool {
 /**
  * Load csv to array$_FILES['pictureHead']['error']
  *
- * @param array - dictionary for search on the key. example: ['name' => 'Имя'].
- * @param string - csv filename with path
- * @param bool - if true that return one rang array
- *
- * @return mixed array or bool
+ * @param array  $dict     - dictionary for search on the key. example: ['name' => 'Имя'].
+ * @param string $filename - csv filename with path
+ * @param bool   $oneRang  - if true that return one rang array
+ * @param bool   $strict   - strict checking of column names
  */
-function loadCSV($dict, $filename, $one_rang = false) {
-  global $main;
-  $filename = file_exists($filename) ? $filename : $main->getCmsParam(VC::CSV_PATH) . $filename;
+function loadCSV(array $dict, string $filename, bool $oneRang = false, bool $strict = false): array|string
+{
+  $filename = findCsvFile($filename);
   $result = [];
 
   if (!count($dict)) return loadFullCSV($filename);
 
-  if (file_exists($filename) && ($handle = fopen($filename, "rt")) !== false) {
-    if (($data = fgetcsv($handle, CSV_STRING_LENGTH, CSV_DELIMITER))) {
+  if (strlen($filename) && ($handle = fopen($filename, "rt")) !== false) {
+    if (($data = fgetcsv($handle, CSV_STRING_LENGTH, CSV_DELIMITER, "\"", "\\"))) {
       $keyIndex = [];
 
-      $inCharset = 'UTF-8'; //mb_detect_encoding(, ['windows-1251', 'UTF-8'], true);
-
       foreach ($dict as $key => $word) {
-        $bool = is_array($word);
-        $keyWord = $bool ? $word[0] : $word;
-        $i = findWord($keyWord, $data, $inCharset);
-        if ($i !== false) {
-          if ($bool) $keyIndex[$key] = [$i, $word[1]];
-          else $keyIndex[$key] = $i;
-        }
+        if (is_numeric($key)) $key = $word;
+
+        $isArr = is_array($word);
+        $i = findWord($isArr ? $word[0] : $word, $data, false, $strict);
+
+        if ($i !== false) $keyIndex[$key] = $isArr ? [$i, $word[1]] : $i;
       }
-      if ($one_rang) {
 
-        foreach ($keyIndex as $item) {
-          $addpos = function ($data) use ($item) { return $data[$item]; };
-        }
-
+      if ($oneRang) {
+        $item = end($keyIndex);
+        $addPos = function ($data) use ($item) { return $data[$item]; };
       } else {
 
-        $addpos = function ($data) use ($keyIndex, $inCharset) {
+        $addPos = function ($data) use ($keyIndex) {
           $arr = [];
           foreach ($keyIndex as $key => $item) {
-            if (is_array($item)) {
-              $arr[$key] = trim(iconv($inCharset, 'UTF-8', $data[$item[0]]));
-              $arr[$key] = convert($item[1], $arr[$key]);
-            } else {
-              $value = trim(iconv($inCharset, 'UTF-8', $data[$item]));
-              $arr[$key] = preg_replace('/^d_/', '', $value);
-            }
+            $arr[$key] = is_array($item)
+              ? csvTypeConvert($item[1], trim($data[$item[0]]))
+              : preg_replace('/^d_/', '', trim($data[$item]));
           }
           return $arr;
         };
 
       }
 
-      while (($data = fgetcsv($handle, CSV_STRING_LENGTH, CSV_DELIMITER)) !== false) {
-        $result[] = $addpos($data);
+      while (($data = fgetcsv($handle, CSV_STRING_LENGTH, CSV_DELIMITER, "\"", "\\")) !== false) {
+        $result[] = $addPos($data);
       }
     }
     fclose($handle);
-  } else {
-    return 'File is not exist';
   }
+  else return 'File is not exist';
 
   return $result;
 }
 
-/**
- * Поиск в первых пяти строках начала таблиц
- *
- * @param $path
- * @return array|bool
- */
-function loadFullCSV($path) {
+function loadFullCSV(string $path): array {
   if ($path !== '' && ($handle = fopen($path, "rt")) !== false) {
     $result = [];
-    $emptyRow = 0;
-    while ($emptyRow < 5) { // Пять пустрых строк характеристик считаем что больше нету
-      if (($data = fgetcsv($handle, CSV_STRING_LENGTH, CSV_DELIMITER))) {
-        if (!mb_strlen(implode('', $data))) {
-          $emptyRow++;
-          continue;
-        }
-        if ($emptyRow > 0) $emptyRow = 0;
 
-        $result[] = array_map(function ($cell) { return preg_replace('/^d_/', '', $cell);}, $data);
-      } else $emptyRow++;
+    while (($data = fgetcsv($handle, CSV_STRING_LENGTH, CSV_DELIMITER, "\"", "\\"))) {
+      $result[] = array_map(function ($cell) {
+        return preg_replace('/^d_/', '', $cell);
+      }, $data);
     }
     fclose($handle);
-  } else return 'File is not exist';
+  } else $result['error'] = 'File is not exist';
 
   return $result;
 }
 
 /**
- * @param string $lang
+ * Remove folder recursive
  */
-function setUserLocale($lang = 'ru_RU') {
-  /*switch ($lang) {
-    case 'ru_RU':
-      putenv('LANG=ru_RU.UTF8');
-      putenv('LANGUAGE=ru_RU.UTF8');
-      setlocale (LC_ALL, $lang . '.UTF8');
-      break;
-    default:
-      putenv('LC_ALL=' . $lang);
-      putenv('LANG=' . $lang);
-      putenv('LANGUAGE=' . $lang);
-      setlocale (LC_ALL,"English", "en", "en_US.UTF8");
-  }*/
+if (!function_exists('removeFolder')) {
+  function removeFolder(string $dir): bool {
+    if (!is_dir($dir)) return false;
 
+    $files = array_diff(scandir($dir), ['.', '..']);
+
+    foreach ($files as $file) {
+      if (is_dir("$dir/$file")) removeFolder("$dir/$file");
+      else unlink("$dir/$file");
+    }
+
+    return rmdir($dir);
+  }
+}
+
+function setUserLocale(string $lang = 'ru_RU') {
   putenv('LANG=ru_RU.UTF8');
   putenv('LANGUAGE=ru_RU.UTF8');
   setlocale(LC_ALL, $lang . '.UTF8');
-
-  //putenv('LC_MESSAGES='.$locale);
-  //setlocale(LC_MESSAGES, $locale);
 
   bindtextdomain($lang, './lang');
   textdomain($lang);
 }
 
 /**
- * get template from directory view
- * @param string $path whit out
- * @param array  $vars
- *
- * @return string
+ * Get template from view directory
  */
 function template(string $path = 'base', array $vars = []): string {
   global $main;
@@ -424,27 +351,15 @@ function template(string $path = 'base', array $vars = []): string {
   extract($vars);
   ob_start();
 
-  // Абсолютный путь файла
-  if (file_exists($path)) {
-    include $path;
-  }
-  // В корне сайта в public
-  else if (file_exists(ABS_SITE_PATH . "public/views/$path")) {
-    include ABS_SITE_PATH . "public/views/$path";
-  }
-  // в сms
-  else if (file_exists(CORE . "views/$path")) {
-    include CORE . "views/$path";
-  } else echo 'Template not found: ' . $path;
+  if (file_exists($path)) include $path; // Absolute path
+  else if (file_exists(ABS_SITE_PATH . "public/views/$path")) include ABS_SITE_PATH . "public/views/$path"; // In root public
+  else if (file_exists(CORE . "views/$path")) include CORE . "views/$path"; // In core
+  else echo 'Template not found: ' . $path;
 
   return ob_get_clean();
 }
 
-/**
- * @param $value {string}
- * @return string
- */
-function translit($value): string {
+function translit(string $value): string {
   $converter = [
     'а' => 'a', 'б' => 'b', 'в' => 'v', 'г' => 'g', 'д' => 'd',
     'е' => 'e', 'ё' => 'e', 'ж' => 'zh', 'з' => 'z', 'и' => 'i',
@@ -459,45 +374,63 @@ function translit($value): string {
 }
 
 /**
- * @param string $url
- * @param array $config - 'method', 'json' => true (as default) or any, 'json_assoc', 'auth'
- * @param array<string, string> $params - assoc array
- * @return string|array
+ * @param array $config - 'method', 'json' => true (as default) or any, 'json_assoc', 'login', 'password', 'contentType', 'timeout'
  */
-function httpRequest(string $url, array $config = [], array $params = []) {
+function httpRequest(string $url, array $config = [], array $params = []): array|string
+{
   $myCurl = curl_init();
 
   $curlConfig = [
     CURLOPT_URL => $url,
+    CURLOPT_SSL_VERIFYPEER => false, // Добавить: Определять есть ли ssl
+    CURLOPT_SSL_VERIFYHOST => false, // Добавить: Определять есть ли ssl
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER => [],
+    CURLOPT_TIMEOUT => $config['timeout'] ?? 45,
   ];
 
   if (isset($config['auth'])) {
-    $curlConfig[CURLOPT_HTTPHEADER][] = 'Authorization:' . $config['auth'];
+    $curlConfig[CURLOPT_HTTPHEADER][] = 'Authorization: ' . $config['auth'];
+  }
+
+  else if (isset($config['login']) && isset($config['password'])) {
+    $curlConfig[CURLOPT_HTTPAUTH] = CURLAUTH_BASIC;
+    $curlConfig[CURLOPT_USERPWD]  = $config['login'] . ':' . $config['password'];
   }
 
   if (strtolower($config['method'] ?? 'get') === 'get') {
     $curlConfig[CURLOPT_HTTPGET] = true;
-    $curlConfig[CURLOPT_URL] .= '?' . http_build_query($params);
+    if (!empty($params)) $curlConfig[CURLOPT_URL] .= '?' . http_build_query($params);
   } else {
+    $contentType = $config['contentType'] ?? 'application/json; charset=utf-8';
+
     $curlConfig[CURLOPT_HTTPGET] = false;
     $curlConfig[CURLOPT_POST] = true;
-    $curlConfig[CURLOPT_HTTPHEADER][] = "Content-Type: application/x-www-form-urlencoded";
-    $curlConfig[CURLOPT_POSTFIELDS] = http_build_query($params);
+    $curlConfig[CURLOPT_HTTPHEADER][] = 'Content-Type: ' . $contentType;
+    if (is_string($params)) $curlConfig[CURLOPT_HTTPHEADER][] = 'Content-Length: ' . strlen($params);
+    $curlConfig[CURLOPT_POSTFIELDS]   = $params;
+  }
+
+  if (isset($config['headers'])) {
+    $curlConfig[CURLOPT_HTTPHEADER] = array_merge($curlConfig[CURLOPT_HTTPHEADER], $config['headers']);
   }
 
   curl_setopt_array($myCurl, $curlConfig);
   $response = curl_exec($myCurl);
 
-  if ($response === false) return curl_error($myCurl);
+  if ($error = $response === false) {
+    $response = [
+      'code' => curl_getinfo($myCurl, CURLINFO_HTTP_CODE),
+      'error' => curl_error($myCurl),
+    ];
+  }
 
   curl_close($myCurl);
 
-  if (($config['json'] ?? true) === true) {
-    $res   = json_decode($response, $config['json_assoc'] ?? true);
-    $error = json_last_error();
-    return $error === 0 ? $res : 'Json error: ' . $response;
+  if ($error === false && ($config['json'] ?? true) === true) {
+    $res = json_decode($response, $config['json_assoc'] ?? true);
+
+    return json_last_error() === JSON_ERROR_NONE ? $res : 'Json error: ' . $response;
   }
 
   return $response;
@@ -512,3 +445,37 @@ if (!function_exists('str_starts_with')) {
     return strncmp($haystack, $needle, strlen($needle)) === 0;
   }
 }
+
+if (!function_exists('trigger_deprecation')) {
+  /**
+   * Triggers a silenced deprecation notice.
+   *
+   * @param string $package The name of the Composer package that is triggering the deprecation
+   * @param string $version The version of the package that introduced the deprecation
+   * @param string $message The message of the deprecation
+   * @param mixed  ...$args Values to insert in the message using printf() formatting
+   *
+   * @author Nicolas Grekas <p@tchwork.com>
+   */
+  function trigger_deprecation(string $package, string $version, string $message, ...$args): void
+  {
+    @trigger_error(($package || $version ? "Since $package $version: " : '').($args ? vsprintf($message, $args) : $message), E_USER_DEPRECATED);
+  }
+}
+
+if (!function_exists('array_find')) {
+  /**
+   * @param array $array - The array to search.
+   * @param callable $callback - The callback to run for each element.
+   */
+  function array_find(array $array, callable $callback): mixed { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.arrayFound
+    foreach ( $array as $key => $value ) {
+      if ($callback($value, $key)) return $value;
+    }
+
+    return null;
+  }
+}
+
+date_default_timezone_set('Europe/Moscow');
+spl_autoload_register('cmsAutoloader');

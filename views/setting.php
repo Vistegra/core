@@ -1,56 +1,59 @@
-<?php if (!defined('MAIN_ACCESS')) die('access denied!');
+<?php  if ( !defined('MAIN_ACCESS')) die('access denied!');
 
 /**
- * @var Main $main - global
+ * @var $main - global object
+ * @var $param - from controller
+ * @var $admin - from controller
  */
 
-$isAdmin = $main->getLogin('admin');
-?>
-<div class="row container m-auto" id="settingForm">
-  <?php if ($isAdmin) { ?>
-    <setting-mail :prop-mail="mail" @update="updateMail"></setting-mail>
-  <?php } ?>
+/*$field['headContent']    = <<<headContent
+headContent;
+$field['pageHeader']    = <<<pageHeader
+pageHeader;
+$field['sideLeft']      = <<<sideLeft
+sideLeft;*/
 
-  <setting-user :user-data="user" :user-fields="managerFields" @update="updateUser"></setting-user>
+$field['content'] = template('parts/settingContent', $param);
 
-  <?php if ($main->availablePage('users') && $isAdmin) { ?>
-    <setting-permission @update="updatePermission"></setting-permission>
-
-    <setting-manager-field :prop-fields="managerFields" @update="updateManagerFields"></setting-manager-field>
-  <?php } ?>
-
-  <?php if ($isAdmin && USE_DATABASE) { ?>
-    <setting-rate @update="updateRate"></setting-rate>
-  <?php } ?>
-
-  <?php if ($isAdmin && $main->availablePage('orders')) { ?>
-    <setting-order-status :prop-status-def="statusDefault" @update="updateOrderStatus"></setting-order-status>
-  <?php } ?>
-
-  <?php if ($isAdmin) { ?>
-    <setting-other :prop-other-fields="otherFields" @update="updateOtherFields"></setting-other>
-  <?php } ?>
-
-  <?php if ($isAdmin && $main->availablePage('orders') && false) { ?>
-    <setting-tokens @update="updateOrderStatus"></setting-tokens>
-  <?php } ?>
-
-  <div class="col-12 text-center">
-    <p-button v-tooltip.bottom="'Сохранить'" icon="pi pi-save" class="p-button-primary m-3"
-              label="Сохранить" @click="saveSetting"
-    ></p-button>
+if ($main->getSettings('admin')) {
+  $field['footerContent'] .= <<<footerContent
+<template id="customField">
+  <div class="col-12 d-flex justify-content-between mt-1" data-field="customFieldItem">
+    <div class="col-6">
+      <input type="text" data-field="key">
+    </div>
+    <div class="col-6">
+      <select class="w-100" data-field="type">
+        <option value="string">Текст (~200 символов)</option>
+        <option value="textarea">Текст (много)</option>
+        <option value="number">Число</option>
+        <option value="date">Дата</option>
+      </select>
+    </div>
   </div>
-  <hr>
+</template>
 
-  <?php if ($main->availablePage('catalog')) { ?>
-    <setting-properties type="catalog" :query="query" :query-param="queryParam"
-                        @update="updateProperties"
-    ></setting-properties>
-  <?php } ?>
+<template id="rateModalTmp">
+  <table class="text-center table table-striped">
+    <thead>
+      <tr>
+        <th>Код</th>
+        <th>Имя</th>
+        <th>Курс</th>
+        <th>Основная</th>
+        <th>Обозначение</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+</template>
 
-  <?php if ($main->availablePage('dealers')) { ?>
-    <setting-properties type="dealer" title="" :query="query" :query-param="queryParam"
-                        @update="updateDealersProperties"
-    ></setting-properties>
-  <?php } ?>
-</div>
+<template id="orderStatus">
+  <div class="input-group mb-3" data-field="orderStatusItem">
+    <input class="input-group-text col-2" data-field="key" disabled>
+    <input type="text" class="form-control" data-field="name">
+  </div>
+</template>
+footerContent;
+}

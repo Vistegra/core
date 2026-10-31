@@ -1,5 +1,6 @@
 *.jpg
 *.png
+.editorconfig
 .idea/
 .vscode/
 node_modules/

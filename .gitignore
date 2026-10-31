@@ -1,6 +1,5 @@
-.idea/
 /libs/vendor/
 !/libs/vendor/autoload.php
 /assets/
-
-/src/test/cypress.json
+/.idea/
+node_modules/

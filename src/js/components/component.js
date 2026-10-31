@@ -1,6 +1,10 @@
 // МОДУЛИ
 //----------------------------------------------------------------------------------------------------------------------
 
+import {c} from "./const.js";
+import {f} from "./func.js";
+import {q} from "./query.js";
+
 // Загрузчик / preLoader
 export class LoaderIcon {
   /**
@@ -9,10 +13,6 @@ export class LoaderIcon {
    * @param {boolean} showNow
    * @param {boolean} targetBlock
    * @param {object} param
-   * @param {boolean|string} param.wrap
-   * @param {boolean|string} param.loader
-   * @param {boolean|string} param.loaderS
-   * @param {boolean|string} param.small
    */
   constructor(field, showNow = true, targetBlock = true, param = {}) {
     this.node = typeof field === 'string' ? f.qS(field) : field;
@@ -64,7 +64,7 @@ export class LoaderIcon {
 
   templateWrap() {
     let node = this.big ? this.template() : this.templateSmall();
-    return this.customWrap || `<div style="display: flex;align-items: center;justify-content: center;position:fixed;z-index: 100;background: #ffffff80">${node}</div>`;
+    return this.customWrap || `<div style="display: flex;align-items: center;justify-content: center;position:fixed;">${node}</div>`;
   }
 
   template() {
@@ -140,7 +140,7 @@ export class LoaderIcon {
     return this.customLoader || template;
   }
 
-  templateSmall() {
+  templateSmall () {
     let defSmallLoader = `
     <style>
       .load-3 .line {
@@ -186,12 +186,69 @@ export class LoaderIcon {
   }
 }
 
+// Всплывающее сообщение
+export class MessageToast {
+  constructor() {
+    this.messageBlock = document.createElement("div");
+    this.messageBlock.classList.add('notification-container');
+    document.body.append(this.messageBlock);
+  }
+
+  checkMsq(msg, type) {
+    if (!type) {
+      this.setMessage(type);
+      this.setColor('error');
+    } else {
+      this.setMessage(msg);
+      this.setColor('success');
+    }
+  }
+
+  setMessage(msg) {
+    this.messageBlock.innerHTML = msg || 'Текст сообщения пустой';
+  }
+
+  setColor(color) {
+    this.messageBlock.classList.remove('success', 'warning', 'error');
+    switch (color) {
+      case 'success':
+        this.messageBlock.classList.add('success');
+        break;
+      case 'warning':
+        this.messageBlock.classList.add('warning');
+        break;
+      case 'error':
+      default:
+        this.messageBlock.classList.add('error');
+        break;
+    }
+  }
+
+  show(msg = 'message body', type = 'success', autoClose = true) {
+    const close = (delay = 3000) => {
+      setTimeout(() => {
+        this.messageBlock.remove();
+      }, delay);
+    }
+
+    if (typeof type !== 'string') this.checkMsq(msg, type);
+    else {
+      this.setMessage(msg);
+      this.setColor(type);
+    }
+
+    if (autoClose) close();
+    else this.messageBlock.addEventListener('click', close.bind(this, 0), {once: true});
+
+    return this.messageBlock;
+  }
+}
+
 // Печать
 export const Print = () => {
   let p   = Object.create(null);
   p.frame = document.createElement("iframe");
   p.data  = 'no content'; // html
-  p.href  = location.pathname;
 
   p.frame.onload = function () {
     history.pushState({print: 'ok'}, '', '/');
@@ -220,40 +277,39 @@ export const Print = () => {
         imagesPromise = [];
 
     nodes.forEach(n => {
-      if (n.src.includes('base64')) imagesPromise.push(new Promise(r => r(n)));
-      else imagesPromise.push(this.loadImage(n.src));
+      !n.src.includes('base64') && imagesPromise.push(this.loadImage(n.src));
     })
 
-    await Promise.all([...imagesPromise])
-                 .then(value => nodes.forEach((n, i) => n.src = value[i].src));
+    imagesPromise.length
+    && await Promise.all([...imagesPromise])
+                    .then(value => nodes.forEach((n, i) => n.src = value[i].src));
 
     return container;
   }
 
   p.setContent = async function (content, classList = []) {
-    let container = document.createElement('div'),
+    let container = document.createElement('div'), cloneN, delay = 0,
         haveImg = content.includes('<img');
-    container.classList.add(...classList);
+    classList.map(i => container.classList.add(i));
     container.innerHTML = content;
-    if (haveImg) {
+    if(haveImg) {
       container = await this.prepareContent(container);
     }
     this.data = container;
   }
 
   p.print = function (content, printStyleTpl = 'printTpl.css', classList = []) {
-    f.Get({
-      data: 'mode=docs&cmsAction=getPrintStyle&fileTpl=' + printStyleTpl
+    q.Get({
+      data: 'mode=docs&docsAction=getPrintStyle&fileTpl=' + printStyleTpl
     }).then(async data => {
       const scrollY = window.pageYOffset;
 
-      typeof data['style'] === 'string' && (content = `<style>${data['style']}</style>` + content);
+      typeof data.style === 'string' && (content = `<style>${data.style}</style>` + content);
       await this.setContent(content, classList);
 
       document.body.append(this.frame);
       this.frame.remove();
       window.scrollTo(0, scrollY);
-      history.pushState({print: 'ok'}, '', this.href);
     });
   }
 
@@ -296,7 +352,7 @@ export class Pagination {
     this.query       = query;
     this.dbAction    = dbAction;
     this.sortParam   = sortParam;
-    this.activeClass = f.CLASS_NAME.ACTIVE;
+    this.activeClass = c.CLASS_NAME.ACTIVE;
     this.setParam();
   }
 
@@ -394,29 +450,23 @@ export class Pagination {
   }
 
   template() {
-    return `<div class="pagination justify-content-center">
-      <div class="page-item me-2">
-        <button type="button" class="page-link" data-action="prev">&laquo;</button>
-      </div>
-      <div class="page-item pagination" data-btnwrap></div>
-      <div class="page-item ms-2">
-        <button type="button" class="page-link" data-action="next">&raquo;</button>
-      </div>
+    return `<div class="text-center d-flex">
+      <div class="col"><button type="button" class="btn-arrow" data-action="prev">&laquo;</i></button></div>
+      <div data-btnwrap class="col d-flex"></div>
+      <div class="col"><button type="button" class="btn-arrow" data-action="next">&raquo;</i></button></div>
 
-      <div class="page-item ms-5">
-        <select class="form-select d-inline-block" data-action="count">
-          <option value="5">5 запись</option>
-          <option value="10">10 записей</option>
-          <option value="20" selected>20 записей</option>
-        </select>
-      </div>
+      <div class="col"><select class="select-width custom-select" data-action="count">
+        <option value="5">5 запись</option>
+        <option value="10">10 записей</option>
+        <option value="20" selected>20 записей</option>
+      </select></div>
     </div>`;
   }
 
   templateBtn() {
-    return `<div class="page-item"><input type="button"
-      value="\${pageValue}" class="page-link"
-      data-action="page" data-page="\${page}"></div>`;
+    return `<input type="button"
+      value="\${pageValue}" class="ml-1 mr-1 input-paginator"
+      data-action="page" data-page="\${page}">`;
   }
 }
 
@@ -432,7 +482,7 @@ export class SortColumns {
 
     if (!thead || !query || !sortParam) return;
 
-    let activeClass = f.CLASS_NAME.SORT_BTN_CLASS;
+    let activeClass = c.CLASS_NAME.SORT_BTN_CLASS;
     this.thead = thead;
     this.query = query;
     this.dbAction = dbAction || '';
@@ -452,6 +502,7 @@ export class SortColumns {
         n.classList.add(activeClass);
         n.value = n.value.replace(this.arrow.notActive, this.arrow.arrowDown);
       }
+
     });
   }
 
@@ -459,7 +510,7 @@ export class SortColumns {
   sortRows(e) { /*↑↓*/
     let input = e.target,
         colSort = input.dataset.column,
-        activeClass = f.CLASS_NAME.SORT_BTN_CLASS,
+        activeClass = c.CLASS_NAME.SORT_BTN_CLASS,
         {notActive, arrowDown, arrowUp} = this.arrow,
         arrowReg = new RegExp(`${notActive}|${arrowDown}|${arrowUp}`);
 
@@ -541,7 +592,7 @@ export class SaveVisitorsOrder {
     data.set('importantValue', JSON.stringify(report['importantValue'] || false));
     data.set('total', report.total);
 
-    f.Post({data});
+    q.Post({data});
   }
 
   async emitAddOrder(report) {
@@ -611,11 +662,18 @@ export class Observer {
   }
 }
 
-/**
- * Одноразовые функции
- */
-export const oneTimeFunction = {
-  func: Object.create(null),
+// Одноразовые функции
+export class OneTimeFunction {
+  /**
+   *
+   * @param {string} funcName
+   * @param {function} func
+   */
+  constructor(funcName, func) {
+    this.func = Object.create(null);
+
+    funcName && this.add(funcName, func);
+  }
 
   /**
    *
@@ -624,7 +682,7 @@ export const oneTimeFunction = {
    */
   add(name, func) {
     this.func[name] = func;
-  },
+  }
 
   /**
    *
@@ -636,7 +694,7 @@ export const oneTimeFunction = {
       this.func[name](...arg);
       this.del(name);
     }
-  },
+  }
 
   /**
    *
@@ -644,5 +702,5 @@ export const oneTimeFunction = {
    */
   del(name) {
     this.func[name] && (delete this.func[name]);
-  },
+  }
 }
